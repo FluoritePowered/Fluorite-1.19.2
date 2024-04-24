@@ -40,6 +40,13 @@ public abstract class DedicatedServerMixin extends MinecraftServerMixin {
         super(name);
     }
 
+    // Fluorite start
+    @Inject(method = "showGui", cancellable = true, at = @At(value = "HEAD"))
+    public void fluorite$disableShowGui(CallbackInfo cir) {
+        cir.cancel();
+    }
+    // Fluorite end
+
     @Inject(method = "initServer", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/server/dedicated/DedicatedServer;setPlayerList(Lnet/minecraft/server/players/PlayerList;)V"))
     public void arclight$loadPlugins(CallbackInfoReturnable<Boolean> cir) {
         BukkitRegistry.unlockRegistries();
