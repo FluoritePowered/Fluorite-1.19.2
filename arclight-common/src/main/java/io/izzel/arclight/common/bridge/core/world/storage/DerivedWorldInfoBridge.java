@@ -9,6 +9,4 @@ public interface DerivedWorldInfoBridge {
     ServerLevelData bridge$getDelegate();
 
     void bridge$setDimType(ResourceKey<LevelStem> typeKey);
-
-    void bridge$setWorldName(String name);
 }

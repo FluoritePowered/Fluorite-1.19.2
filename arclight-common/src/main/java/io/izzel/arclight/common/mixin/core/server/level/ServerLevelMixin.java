@@ -15,9 +15,11 @@ import io.izzel.arclight.common.bridge.core.world.storage.WorldInfoBridge;
 import io.izzel.arclight.common.mixin.core.world.level.LevelMixin;
 import io.izzel.arclight.common.mod.ArclightMod;
 import io.izzel.arclight.common.mod.server.world.LevelPersistentData;
+import io.izzel.arclight.common.mod.server.world.WorldSymlink;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import io.izzel.arclight.common.mod.util.DelegateWorldInfo;
 import io.izzel.arclight.common.mod.util.DistValidate;
+import io.izzel.arclight.i18n.ArclightConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
@@ -73,6 +75,7 @@ import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.event.world.TimeSkipEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.objectweb.asm.Opcodes;
+import org.spigotmc.SpigotWorldConfig;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -121,11 +124,6 @@ public abstract class ServerLevelMixin extends LevelMixin implements ServerWorld
         return this.typeKey;
     }
 
-    @Override
-    public void bridge$setWorldDataServer(PrimaryLevelData primaryLevelData) {
-        this.N = primaryLevelData;
-    }
-
     public void arclight$constructor(MinecraftServer minecraftServer, Executor backgroundExecutor, LevelStorageSource.LevelStorageAccess levelSave, ServerLevelData worldInfo, ResourceKey<Level> dimension, LevelStem levelStem, ChunkProgressListener statusListener, boolean isDebug, long seed, List<CustomSpawner> specialSpawners, boolean shouldBeTicking) {
         throw new RuntimeException();
     }
@@ -159,14 +157,18 @@ public abstract class ServerLevelMixin extends LevelMixin implements ServerWorld
                 this.typeKey = ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, dimension.location());
             }
         }
-        this.uuid = WorldUUID.getUUID(minecraftServer.storageSource.getDimensionPath(dimension).toFile()); // Fluorite
-        if (worldInfo instanceof PrimaryLevelData primaryLevelData) {
-            this.bridge$setWorldDataServer(primaryLevelData);
-        } else if (worldInfo instanceof DerivedLevelData derivedLevelData) {
-            this.bridge$setWorldDataServer(DelegateWorldInfo.wrap(derivedLevelData));
-            ((DerivedWorldInfoBridge) derivedLevelData).bridge$setDimType(this.getTypeKey());
+        if (worldInfo instanceof PrimaryLevelData) {
+            this.N = (PrimaryLevelData) worldInfo;
+        } else if (worldInfo instanceof DerivedLevelData) {
+            // damn spigot again
+            this.N = DelegateWorldInfo.wrap(((DerivedLevelData) worldInfo));
+            ((DerivedWorldInfoBridge) worldInfo).bridge$setDimType(this.getTypeKey());
+            if (ArclightConfig.spec().getCompat().isSymlinkWorld()) {
+                WorldSymlink.create((DerivedLevelData) worldInfo, levelSave.getDimensionPath(this.dimension()).toFile());
+            }
         }
-        this.spigotConfig = new org.spigotmc.SpigotWorldConfig(minecraftServer.storageSource.getDimensionPath(dimension).toFile().getName()); // Fluorite
+        this.spigotConfig = new SpigotWorldConfig(worldInfo.getLevelName());
+        this.uuid = WorldUUID.getUUID(levelSave.getDimensionPath(this.dimension()).toFile());
         ((ServerChunkProviderBridge) this.chunkSource).bridge$setViewDistance(spigotConfig.viewDistance);
         ((WorldInfoBridge) this.N).bridge$setWorld((ServerLevel) (Object) this);
         var data = this.getDataStorage().computeIfAbsent(LevelPersistentData::new, () -> new LevelPersistentData(null), "bukkit_pdc");
