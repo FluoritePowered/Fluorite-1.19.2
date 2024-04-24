@@ -20,3 +20,10 @@ Please read this [wiki section](https://github.com/IzzelAliz/Arclight/wiki/Contr
 ## License
 
 This project is licensed under [GPL v3](LICENSE).
+
+## Differences with Arclight
+
+* Fixed mixin conflict with chestcavity mod
+* Add some unofficial branch warnings
+* Simplified console log output style
+* Minecraft Server Gui disabled by default
