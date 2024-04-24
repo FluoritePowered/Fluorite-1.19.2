@@ -23,7 +23,7 @@
             <PatternLayout>
                 <!-- use white for info output -->
                 <LoggerNamePatternSelector
-                        defaultPattern="%highlight{[%d{HH:mm:ss} %level] [%c{1.}%notEmpty{/%markerSimpleName}]: %minecraftFormatting{%msg{nolookup}}%n%xEx}{INFO=normal}">
+                        defaultPattern="%highlight{[%d{HH:mm:ss} %level]: %minecraftFormatting{%msg{nolookup}}%n%xEx}{INFO=normal}">
                     <!-- don't include the full logger name for Mojang's logs since they use full class names and it's very verbose -->
                     <PatternMatch key="net.minecraft."
                                   pattern="%highlight{[%d{HH:mm:ss} %level]: %minecraftFormatting{%msg{nolookup}}%n%xEx}{INFO=normal}"/>
