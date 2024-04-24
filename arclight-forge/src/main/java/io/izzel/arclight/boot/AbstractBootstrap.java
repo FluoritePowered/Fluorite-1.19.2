@@ -90,15 +90,16 @@ public class AbstractBootstrap {
     }
 
     protected void setupMod() throws Exception {
-        ArclightVersion.setVersion(ArclightVersion.HORN);
+        ArclightVersion.setVersion(new ArclightVersion("1.19.2", 1192, "v1_19_R1", "Fluorite")); // Fluorite - new version
         try (InputStream stream = getClass().getModule().getResourceAsStream("/META-INF/MANIFEST.MF")) {
             Manifest manifest = new Manifest(stream);
             Attributes attributes = manifest.getMainAttributes();
             String version = attributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
             extract(getClass().getModule().getResourceAsStream("/common.jar"), version);
             String buildTime = attributes.getValue("Implementation-Timestamp");
-            LogManager.getLogger("Arclight").info(ArclightLocale.getInstance().get("logo"),
+            LogManager.getLogger("Fluorite").info(ArclightLocale.getInstance().get("logo"),
                 ArclightLocale.getInstance().get("release-name." + ArclightVersion.current().getReleaseName()), version, buildTime);
+            LogManager.getLogger("Fluorite").error("当前版本为 Fluorite 第三方维护分支开发版本, 疑问请勿反馈至 Arclight 官方"); // Fluorite
         }
     }
 
