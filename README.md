@@ -27,3 +27,4 @@ This project is licensed under [GPL v3](LICENSE).
 * Add some unofficial branch warnings
 * Simplified console log output style
 * Minecraft Server Gui disabled by default
+* More aggressively delete old cache files before running

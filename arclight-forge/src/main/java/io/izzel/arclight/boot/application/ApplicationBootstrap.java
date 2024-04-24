@@ -20,6 +20,7 @@ public class ApplicationBootstrap extends AbstractBootstrap implements Consumer<
         System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
         System.setProperty("log4j.jul.LoggerAdapter", "io.izzel.arclight.boot.log.ArclightLoggerAdapter");
         System.setProperty("log4j.configurationFile", "arclight-log4j2.xml");
+        System.setProperty("arclight.alwaysExtract", String.valueOf(true));
         ArclightLocale.info("i18n.using-language", ArclightConfig.spec().getLocale().getCurrent(), ArclightConfig.spec().getLocale().getFallback());
         try {
             int javaVersion = (int) Float.parseFloat(System.getProperty("java.class.version"));
