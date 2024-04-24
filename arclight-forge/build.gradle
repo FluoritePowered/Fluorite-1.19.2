@@ -1,0 +1,241 @@
+import java.security.MessageDigest
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.0.0' apply false
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'maven-publish'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+archivesBaseName = archivesBaseName + '-' + minecraftVersion
+
+sourceSets {
+    applaunch {
+        java {
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+        }
+    }
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+configurations {
+    installer
+    embed
+    gson
+    implementation.extendsFrom(embed, gson)
+}
+
+repositories {
+    maven {
+        name = 'sponge-repo'
+        url = 'https://repo.spongepowered.org/maven'
+    }
+    maven { url = 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    maven { url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+    maven { url = 'https://files.minecraftforge.net/maven/' }
+    maven { url = 'https://maven.izzel.io/releases' }
+    maven { url = 'https://jitpack.io/' }
+    mavenCentral()
+}
+
+def embedLibs = [/*"org.spongepowered:mixin:$mixinVersion", */ 'org.yaml:snakeyaml:1.33',
+                 'org.xerial:sqlite-jdbc:3.36.0.3', 'mysql:mysql-connector-java:8.0.29',
+                 /*'commons-lang:commons-lang:2.6',*/ 'com.googlecode.json-simple:json-simple:1.1.1',
+                 'org.apache.logging.log4j:log4j-jul:2.17.2', 'net.md-5:SpecialSource:1.11.0',
+                 'org.jline:jline-terminal-jansi:3.12.1', 'org.fusesource.jansi:jansi:1.18',
+                 /*'org.jline:jline-terminal:3.12.1', 'org.jline:jline-reader:3.12.1',*/
+                 'jline:jline:2.12.1', 'org.apache.maven:maven-resolver-provider:3.8.5',
+                 'org.apache.maven.resolver:maven-resolver-connector-basic:1.7.3', 'org.apache.maven.resolver:maven-resolver-transport-http:1.7.3',
+                 'org.apache.maven:maven-model:3.8.5', 'org.codehaus.plexus:plexus-utils:3.3.0',
+                 'org.apache.maven:maven-model-builder:3.8.5', 'org.codehaus.plexus:plexus-interpolation:1.26',
+                 'org.eclipse.sisu:org.eclipse.sisu.inject:0.3.4', 'org.apache.maven:maven-builder-support:3.8.5',
+                 'org.apache.maven:maven-repository-metadata:3.8.5', 'org.apache.maven.resolver:maven-resolver-api:1.6.3',
+                 'org.apache.maven.resolver:maven-resolver-spi:1.6.3', 'org.apache.maven.resolver:maven-resolver-util:1.6.3',
+                 'org.apache.maven.resolver:maven-resolver-impl:1.6.3', 'org.apache.httpcomponents:httpclient:4.5.13',
+                 'org.apache.httpcomponents:httpcore:4.4.14', 'commons-codec:commons-codec:1.15',
+                 'org.slf4j:jcl-over-slf4j:1.7.30', /*'org.apache.logging.log4j:log4j-slf4j18-impl:2.14.1',*/
+                 'org.spongepowered:configurate-hocon:3.6.1', 'org.spongepowered:configurate-core:3.6.1',
+                 'com.typesafe:config:1.3.1']
+
+dependencies {
+    implementation 'com.google.guava:guava:31.1-jre'
+    implementation 'org.ow2.asm:asm:9.3'
+    implementation 'org.ow2.asm:asm-tree:9.3'
+    implementation 'cpw.mods:modlauncher:9.0.24'
+    implementation 'cpw.mods:securejarhandler:2.1.4'
+    implementation 'net.minecraftforge:forgespi:6.0.0'
+    gson 'com.google.code.gson:gson:2.9.0'
+    implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
+    implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
+    implementation 'org.jetbrains:annotations:23.0.0'
+    implementation 'org.spongepowered:mixin:0.8.3'
+    implementation 'org.apache.logging.log4j:log4j-jul:2.17.2'
+    implementation "net.minecraftforge:fmlloader:${minecraftVersion}-${forgeVersion}"
+    for (def lib : embedLibs) {
+        installer lib
+    }
+    embed 'io.izzel.arclight:mixin-tools:1.0.1'
+    embed "io.izzel:tools:$toolsVersion"
+    embed "io.izzel.arclight:arclight-api:$apiVersion"
+    embed 'commons-lang:commons-lang:2.6@jar'
+    embed(project(':i18n-config')) {
+        transitive = false
+    }
+    embed(project(':forge-installer')) {
+        transitive = false
+    }
+}
+
+jar {
+    manifest.attributes 'Main-Class': 'io.izzel.arclight.server.Launcher'
+    manifest.attributes 'Implementation-Title': 'Arclight'
+    manifest.attributes 'Implementation-Version': "arclight-$minecraftVersion-${project.version}-$gitHash"
+    manifest.attributes 'Implementation-Vendor': 'Arclight Team'
+    manifest.attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd HH:mm:ss")
+    manifest.attributes 'Automatic-Module-Name': 'arclight.boot'
+    from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude "META-INF/MANIFEST.MF"
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+        exclude "LICENSE.txt"
+        exclude "META-INF/services/**"
+        exclude "org/apache/commons/lang/enum/**"
+    }
+    into('/') {
+        it.from(project(':arclight-common').tasks.jar.outputs.files.collect())
+        it.rename { name -> 'common.jar' }
+    }
+    into('/') {
+        it.from(configurations.gson.collect())
+        it.rename { name -> 'gson.jar' }
+    }
+    from sourceSets.applaunch.output.classesDirs
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn(project(':arclight-common').tasks.jar)
+}
+
+task generateInstallerInfo {
+    inputs.property('forgeVersion', forgeVersion)
+    def installer = file("${project.buildDir}/arclight_installer/META-INF/installer.json")
+    outputs.file(installer)
+    doLast {
+        def libs = project.configurations.installer.dependencies.collect { Dependency dep ->
+            def classifier = null
+            if (dep.artifacts) {
+                dep.artifacts.each { DependencyArtifact artifact ->
+                    if (artifact.classifier) {
+                        classifier = artifact.classifier
+                    }
+                }
+            }
+            if (classifier) {
+                return "${dep.group}:${dep.name}:${dep.version}:$classifier"
+            } else {
+                return "${dep.group}:${dep.name}:${dep.version}"
+            }
+        }
+        def sha1 = { file ->
+            MessageDigest md = MessageDigest.getInstance('SHA-1')
+            file.eachByte 4096, { bytes, size ->
+                md.update(bytes, 0 as byte, size)
+            }
+            return md.digest().collect { String.format "%02x", it }.join()
+        }
+        def artifacts = { List<String> arts ->
+            def ret = new HashMap<String, String>()
+            def cfg = project.configurations.create("art_rev_" + System.currentTimeMillis())
+            cfg.transitive = false
+            arts.each {
+                def dep = project.dependencies.create(it)
+                cfg.dependencies.add(dep)
+            }
+            cfg.resolve()
+            cfg.resolvedConfiguration.resolvedArtifacts.each { rev ->
+                def art = [
+                        group     : rev.moduleVersion.id.group,
+                        name      : rev.moduleVersion.id.name,
+                        version   : rev.moduleVersion.id.version,
+                        classifier: rev.classifier,
+                        extension : rev.extension,
+                        file      : rev.file
+                ]
+                def desc = "${art.group}:${art.name}:${art.version}"
+                if (art.classifier != null)
+                    desc += ":${art.classifier}"
+                if (art.extension != 'jar')
+                    desc += "@${art.extension}"
+                ret.put(desc.toString(), sha1(art.file))
+            }
+            return arts.collectEntries { [(it.toString()): ret.get(it.toString())] }
+        }
+        def output = [
+                installer: [
+                        minecraft: minecraftVersion,
+                        forge    : forgeVersion,
+                        hash     : sha1(project(':arclight-common').file("${project(':arclight-common').buildDir}/arclight_cache/forge-$minecraftVersion-$forgeVersion-installer.jar"))
+                ],
+                libraries: artifacts(libs)
+        ]
+        installer.text = groovy.json.JsonOutput.toJson(output)
+    }
+    dependsOn(project(':arclight-common').tasks.downloadInstaller)
+}
+
+project.sourceSets.main.output.dir file("${project.buildDir}/arclight_installer"), builtBy: tasks.generateInstallerInfo
+
+compileJava {
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_16
+    options.compilerArgs << '-XDignore.symbol.file' << '-XDenableSunApiLintControl'
+    options.encoding = 'UTF-8'
+}
+
+compileApplaunchJava {
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_7
+}
+
+task runProdServer(type: JavaExec) {
+    classpath = files(tasks.jar)
+    systemProperties 'terminal.ansi': 'true'
+    systemProperties 'mixin.debug.export': 'true'
+    systemProperties 'mixin.dumpTargetOnFailure': 'true'
+    systemProperties 'arclight.alwaysExtract': 'true'
+    systemProperties 'arclight.remapper.dump': './.mixin.out/plugin_classes'
+    workingDir System.env.ARCLIGHT_PROD_DIR ?: file('run_prod')
+    maxHeapSize '4G'
+    args 'nogui'
+    standardInput System.in
+    javaLauncher.convention(javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    })
+    dependsOn project(':arclight-common').tasks.build, project.tasks.build
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "IzzelAliz"
+            url = uri('https://maven.izzel.io/' + (project.version.toString().endsWith('SNAPSHOT') ? 'snapshots' : 'releases'))
+            credentials {
+                username = project.findProperty("mavenUser") ?: System.getenv("ARCLIGHT_USER")
+                password = project.findProperty("mavenToken") ?: System.getenv("ARCLIGHT_TOKEN")
+            }
+        }
+    }
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'arclight-forge-' + versionName
+            artifact project(':arclight-common').tasks.srgJar
+            artifact project(':arclight-common').tasks.spigotJar
+            //artifact sourceJar
+        }
+    }
+}
+
+if ('true'.equalsIgnoreCase(System.getenv('APPVEYOR_REPO_TAG'))) {
+    tasks.build.dependsOn(tasks.publish)
+}
