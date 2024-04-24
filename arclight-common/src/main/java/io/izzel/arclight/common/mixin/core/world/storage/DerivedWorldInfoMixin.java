@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(DerivedLevelData.class)
 public class DerivedWorldInfoMixin implements DerivedWorldInfoBridge {
@@ -18,39 +19,20 @@ public class DerivedWorldInfoMixin implements DerivedWorldInfoBridge {
 
     private ResourceKey<LevelStem> typeKey;
 
+    private String properName;
+
     /**
-     * @author IzzelAliz
-     * @reason
+     * @author Kotori0629
+     * @reason compat bukkitWorld
      */
     @Overwrite
     public String getLevelName() {
-        if (typeKey == null || typeKey == LevelStem.OVERWORLD) {
-            return this.wrapped.getLevelName();
-        } else {
-            if (ArclightConfig.spec().getCompat().isSymlinkWorld()) {
-                String worldName = this.wrapped.getLevelName() + "_";
-                String suffix;
-                if (typeKey == LevelStem.NETHER) {
-                    suffix = "nether";
-                } else if (typeKey == LevelStem.END) {
-                    suffix = "the_end";
-                } else {
-                    suffix = (typeKey.location().getNamespace() + "_" + typeKey.location().getPath()).replace('/', '_');
-                }
-                return worldName + suffix;
-            } else {
-                String worldName = this.wrapped.getLevelName() + "/";
-                String suffix;
-                if (typeKey == LevelStem.END) {
-                    suffix = "DIM1";
-                } else if (typeKey == LevelStem.NETHER) {
-                    suffix = "DIM-1";
-                } else {
-                    suffix = typeKey.location().getNamespace() + "/" + typeKey.location().getPath();
-                }
-                return worldName + suffix;
-            }
-        }
+        return this.properName != null ? this.properName : this.wrapped.getLevelName();
+    }
+
+    @Override
+    public void bridge$setWorldName(String name) {
+        this.properName = name;
     }
 
     @Override

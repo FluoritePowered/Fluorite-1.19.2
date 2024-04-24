@@ -3,10 +3,13 @@ package io.izzel.arclight.common.mixin.core.server;
 import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.DataFixer;
 import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.Lifecycle;
 import io.izzel.arclight.api.ArclightVersion;
 import io.izzel.arclight.common.bridge.core.command.ICommandSourceBridge;
 import io.izzel.arclight.common.bridge.core.server.MinecraftServerBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
+import io.izzel.arclight.common.bridge.core.world.server.ServerWorldBridge;
+import io.izzel.arclight.common.bridge.core.world.storage.DerivedWorldInfoBridge;
 import io.izzel.arclight.common.mod.ArclightConstants;
 import io.izzel.arclight.common.mod.server.BukkitRegistry;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
@@ -22,6 +25,7 @@ import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -52,13 +56,20 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.util.profiling.jfr.JvmProfiler;
 import net.minecraft.util.thread.ReentrantBlockableEventLoop;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.DataPackConfig;
 import net.minecraft.world.level.ForcedChunksSavedData;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.WorldGenSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraft.world.level.storage.DerivedLevelData;
+import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.level.storage.WorldData;
 import net.minecraftforge.common.MinecraftForge;
@@ -95,6 +106,8 @@ import java.lang.management.ManagementFactory;
 import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -154,6 +167,7 @@ public abstract class MinecraftServerMixin extends ReentrantBlockableEventLoop<T
     @Shadow @Final protected Services services;
     @Shadow private static CrashReport constructOrExtractCrashReport(Throwable p_206569_) { return null; }
     @Shadow @Final private StructureTemplateManager structureTemplateManager;
+    @Shadow public LevelStorageSource.LevelStorageAccess storageSource;
     // @formatter:on
 
     public MinecraftServerMixin(String name) {
@@ -345,6 +359,27 @@ public abstract class MinecraftServerMixin extends ReentrantBlockableEventLoop<T
     private void arclight$registerEnv(ChunkProgressListener p_240787_1_, CallbackInfo ci) {
         BukkitRegistry.registerEnvironments(this.worldData.worldGenSettings().dimensions());
     }
+
+    // Fluorite start
+    @Inject(method = "createLevels", at = @At(value = "NEW", ordinal = 1, shift = At.Shift.BEFORE, target = "(Lnet/minecraft/server/MinecraftServer;Ljava/util/concurrent/Executor;Lnet/minecraft/world/level/storage/LevelStorageSource$LevelStorageAccess;Lnet/minecraft/world/level/storage/ServerLevelData;Lnet/minecraft/resources/ResourceKey;Lnet/minecraft/world/level/dimension/LevelStem;Lnet/minecraft/server/level/progress/ChunkProgressListener;ZJLjava/util/List;Z)Lnet/minecraft/server/level/ServerLevel;"), locals = LocalCapture.CAPTURE_FAILHARD)
+    private void fluorite$setWorldName(ChunkProgressListener p_129816_, CallbackInfo ci, ServerLevelData serverleveldata, WorldGenSettings worldgensettings, boolean flag, long i, long j, List<CustomSpawner> list, Registry<LevelStem> registry, LevelStem levelstem, ServerLevel serverlevel, DimensionDataStorage dimensiondatastorage, WorldBorder worldborder, Iterator var15, Map.Entry entry, ResourceKey<LevelStem> resourceKey, ResourceKey<Level> resourceKey1, DerivedLevelData derivedLevelData) {
+        ((DerivedWorldInfoBridge) derivedLevelData).bridge$setWorldName(DimensionType.getStorageFolder(resourceKey1, this.storageSource.getWorldDir()).toFile().getName());
+    }
+
+    @Inject(method = "createLevels", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/world/level/border/WorldBorder;addListener(Lnet/minecraft/world/level/border/BorderChangeListener;)V"), locals = LocalCapture.CAPTURE_FAILHARD)
+    private void fluorite$setWorldDataServer(ChunkProgressListener p_129816_, CallbackInfo ci, ServerLevelData serverleveldata, WorldGenSettings worldgensettings, boolean flag, long i, long j, List<CustomSpawner> list, Registry<LevelStem> registry, LevelStem levelstem, ServerLevel serverlevel, DimensionDataStorage dimensiondatastorage, WorldBorder worldborder, Iterator var15, Map.Entry entry, ResourceKey<LevelStem> resourceKey, ResourceKey<Level> resourceKey1, DerivedLevelData derivedLevelData, ServerLevel serverLevel) {
+        ((ServerWorldBridge) serverLevel).bridge$setWorldDataServer(new PrimaryLevelData(
+                new LevelSettings(
+                        derivedLevelData.getLevelName(),
+                        derivedLevelData.getGameType(),
+                        derivedLevelData.isHardcore(),
+                        derivedLevelData.getDifficulty(),
+                        false,
+                        derivedLevelData.getGameRules(),
+                        this.datapackconfiguration),
+                ((PrimaryLevelData) serverleveldata).worldGenSettings(), Lifecycle.stable()));
+    }
+    // Fluorite end
 
     @Redirect(method = "createLevels", at = @At(value = "INVOKE", remap = false, target = "Ljava/util/Map;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"))
     private Object arclight$worldInit(Map<Object, Object> map, Object key, Object value) {

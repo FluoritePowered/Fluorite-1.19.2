@@ -17,9 +17,6 @@ public class CompatSpec {
     @Setting("entity-property-overrides")
     private Map<String, EntityPropertySpec> entities;
 
-    @Setting("symlink-world")
-    private boolean symlinkWorld;
-
     @Setting("extra-logic-worlds")
     private List<String> extraLogicWorlds;
 
@@ -46,10 +43,6 @@ public class CompatSpec {
 
     public Optional<EntityPropertySpec> getEntity(String key) {
         return Optional.ofNullable(entities.get(key));
-    }
-
-    public boolean isSymlinkWorld() {
-        return symlinkWorld;
     }
 
     public List<String> getExtraLogicWorlds() {
