@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.annotation.Nullable;
 
-@Mixin(FoodData.class)
+@Mixin(value = FoodData.class, priority = 1500)
 public abstract class FoodDataMixin implements FoodStatsBridge {
 
     // @formatter:off
