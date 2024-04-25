@@ -92,9 +92,9 @@ dependencies {
 
 jar {
     manifest.attributes 'Main-Class': 'io.izzel.arclight.server.Launcher'
-    manifest.attributes 'Implementation-Title': 'Arclight'
-    manifest.attributes 'Implementation-Version': "arclight-$minecraftVersion-${project.version}-$gitHash"
-    manifest.attributes 'Implementation-Vendor': 'Arclight Team'
+    manifest.attributes 'Implementation-Title': 'Fluorite'
+    manifest.attributes 'Implementation-Version': "$minecraftVersion-$gitHash"
+    manifest.attributes 'Implementation-Vendor': 'Arclight Team / FluoritePowered'
     manifest.attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd HH:mm:ss")
     manifest.attributes 'Automatic-Module-Name': 'arclight.boot'
     from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
@@ -117,6 +117,11 @@ jar {
     from sourceSets.applaunch.output.classesDirs
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     dependsOn(project(':arclight-common').tasks.jar)
+
+    archiveClassifier = 'server'
+    archiveExtension = 'jar'
+    archiveBaseName = 'Fluorite'
+    archiveVersion = "$minecraftVersion-$gitHash"
 }
 
 task generateInstallerInfo {
