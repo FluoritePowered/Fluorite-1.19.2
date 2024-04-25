@@ -9,6 +9,7 @@ import io.izzel.arclight.common.mod.server.ArclightServer;
 import io.izzel.arclight.common.mod.server.world.WrappedWorlds;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import moe.kotori.fluorite.explosions.ExplosionCacheKey;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -56,6 +57,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -88,6 +91,15 @@ public abstract class LevelMixin implements WorldBridge, LevelWriter {
     @SuppressWarnings("unused") // Access transformed to public by ArclightMixinPlugin
     private static BlockPos lastPhysicsProblem; // Spigot
     public boolean preventPoiUpdated = false;
+
+    // Fluorite - Optimize explosions from Paper
+    public final Map<ExplosionCacheKey, Float> explosionDensityCache = new HashMap<>();
+
+    @Override
+    public Map<ExplosionCacheKey, Float> bridge$getExplosionDensityCache() {
+        return explosionDensityCache;
+    }
+    // Fluorite end
 
     public void arclight$constructor(WritableLevelData worldInfo, ResourceKey<Level> dimension, final Holder<DimensionType> dimensionType, Supplier<ProfilerFiller> profiler, boolean isRemote, boolean isDebug, long seed, int maxNeighborUpdate) {
         throw new RuntimeException();

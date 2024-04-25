@@ -1,6 +1,7 @@
 package io.izzel.arclight.common.bridge.core.world;
 
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import moe.kotori.fluorite.explosions.ExplosionCacheKey;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -10,6 +11,8 @@ import org.bukkit.craftbukkit.v.CraftWorld;
 import org.bukkit.entity.SpawnCategory;
 import org.bukkit.generator.ChunkGenerator;
 import org.spigotmc.SpigotWorldConfig;
+
+import java.util.Map;
 
 public interface WorldBridge extends IWorldWriterBridge, IWorldBridge {
 
@@ -36,4 +39,6 @@ public interface WorldBridge extends IWorldWriterBridge, IWorldBridge {
     ResourceKey<LevelStem> bridge$getTypeKey();
 
     void bridge$setLastPhysicsProblem(BlockPos pos);
+
+    Map<ExplosionCacheKey, Float> bridge$getExplosionDensityCache();
 }
