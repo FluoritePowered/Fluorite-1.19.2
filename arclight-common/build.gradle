@@ -80,7 +80,7 @@ dependencies {
 jar {
     manifest.attributes 'MixinConnector': 'io.izzel.arclight.common.mod.ArclightConnector'
     manifest.attributes 'Implementation-Title': 'Fluorite'
-    manifest.attributes 'Implementation-Version': "$minecraftVersion-$gitHash"
+    manifest.attributes 'Implementation-Version': "Fluorite-$minecraftVersion-$gitHash"
     manifest.attributes 'Implementation-Vendor': 'Arclight Team / FluoritePowered'
     manifest.attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd HH:mm:ss")
     from { configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } } {

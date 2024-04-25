@@ -93,7 +93,7 @@ dependencies {
 jar {
     manifest.attributes 'Main-Class': 'io.izzel.arclight.server.Launcher'
     manifest.attributes 'Implementation-Title': 'Fluorite'
-    manifest.attributes 'Implementation-Version': "$minecraftVersion-$gitHash"
+    manifest.attributes 'Implementation-Version': "Fluorite-$minecraftVersion-$gitHash"
     manifest.attributes 'Implementation-Vendor': 'Arclight Team / FluoritePowered'
     manifest.attributes 'Implementation-Timestamp': new Date().format("yyyy-MM-dd HH:mm:ss")
     manifest.attributes 'Automatic-Module-Name': 'arclight.boot'
