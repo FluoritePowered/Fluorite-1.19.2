@@ -17,6 +17,7 @@ import net.minecraft.BlockUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.PositionImpl;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.PacketSendListener;
@@ -465,6 +466,7 @@ public abstract class ServerPlayerMixin extends PlayerMixin implements ServerPla
         this.setTicksFrozen(0);
         this.setSharedFlagOnFire(false);
         this.getCombatTracker().recheckStatus();
+        this.setLastDeathLocation(Optional.of(GlobalPos.of(this.level.dimension(), this.blockPosition())));
     }
 
     @Redirect(method = "awardKillScore", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/scores/Scoreboard;forAllObjectives(Lnet/minecraft/world/scores/criteria/ObjectiveCriteria;Ljava/lang/String;Ljava/util/function/Consumer;)V"))
