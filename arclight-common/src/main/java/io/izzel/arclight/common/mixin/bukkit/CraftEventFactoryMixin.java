@@ -2,10 +2,13 @@ package io.izzel.arclight.common.mixin.bukkit;
 
 import com.google.common.base.Function;
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
+import io.izzel.arclight.common.bridge.core.entity.LivingEntityBridge;
+import io.izzel.arclight.common.bridge.core.entity.player.ServerPlayerEntityBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.mod.util.ArclightCaptures;
 import io.izzel.arclight.common.mod.util.DistValidate;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -18,6 +21,8 @@ import org.bukkit.craftbukkit.v.block.CraftBlock;
 import org.bukkit.craftbukkit.v.block.CraftBlockState;
 import org.bukkit.craftbukkit.v.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v.entity.CraftLivingEntity;
+import org.bukkit.craftbukkit.v.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v.event.CraftEventFactory;
 import org.bukkit.craftbukkit.v.util.CraftMagicNumbers;
 import org.bukkit.entity.Item;
@@ -32,7 +37,10 @@ import org.bukkit.event.block.NotePlayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -41,6 +49,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 @Mixin(value = CraftEventFactory.class, remap = false)
@@ -48,6 +57,42 @@ public class CraftEventFactoryMixin {
 
     @Shadow public static Entity entityDamage;
     @Shadow public static Block blockDamage;
+
+    /**
+     * @author Kotori0629
+     * @reason no reason
+     */
+    @Overwrite
+    public static PlayerDeathEvent callPlayerDeathEvent(ServerPlayer victim, List<org.bukkit.inventory.ItemStack> drops, String deathMessage, boolean keepInventory) {
+        CraftPlayer entity = ((ServerPlayerEntityBridge) victim).bridge$getBukkitEntity();
+        PlayerDeathEvent event = new PlayerDeathEvent(entity, drops, ((LivingEntityBridge) victim).bridge$getExpReward(), 0, deathMessage);
+        event.setKeepInventory(keepInventory);
+        event.setKeepLevel(((ServerPlayerEntityBridge) victim).bridge$getKeepLevel()); // SPIGOT-2222: pre-set keepLevel
+        Bukkit.getServer().getPluginManager().callEvent(event);
+
+        ((ServerPlayerEntityBridge) victim).bridge$setKeepLevel(event.getKeepLevel());
+        ((ServerPlayerEntityBridge) victim).bridge$setNewLevel(event.getNewLevel());
+        ((ServerPlayerEntityBridge) victim).bridge$setNewTotalExp(event.getNewTotalExp());
+        ((ServerPlayerEntityBridge) victim).bridge$setExpToDrop(event.getDroppedExp());
+        ((ServerPlayerEntityBridge) victim).bridge$setNewExp(event.getNewExp());
+
+        return event;
+    }
+
+    /**
+     * @author Kotori0629
+     * @reason no reason
+     */
+    @Overwrite
+    public static EntityDeathEvent callEntityDeathEvent(net.minecraft.world.entity.LivingEntity victim, List<ItemStack> drops) {
+        CraftLivingEntity entity = ((LivingEntityBridge) victim).bridge$getBukkitEntity();
+        EntityDeathEvent event = new EntityDeathEvent(entity, drops, ((LivingEntityBridge) victim).bridge$getExpReward());
+        Bukkit.getServer().getPluginManager().callEvent(event);
+
+        ((LivingEntityBridge) victim).bridge$setExpToDrop(event.getDroppedExp());
+
+        return event;
+    }
 
     @Inject(method = "handleEntityDamageEvent(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/damagesource/DamageSource;Ljava/util/Map;Ljava/util/Map;Z)Lorg/bukkit/event/entity/EntityDamageEvent;", at = @At("HEAD"))
     private static void arclight$captureSource(Entity entity, DamageSource source, Map<EntityDamageEvent.DamageModifier, Double> modifiers, Map<EntityDamageEvent.DamageModifier, Function<? super Double, Double>> modifierFunctions, boolean cancelled, CallbackInfoReturnable<EntityDamageEvent> cir) {

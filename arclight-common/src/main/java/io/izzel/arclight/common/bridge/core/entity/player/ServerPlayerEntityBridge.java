@@ -1,7 +1,6 @@
 package io.izzel.arclight.common.bridge.core.entity.player;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.Location;
@@ -9,9 +8,23 @@ import org.bukkit.craftbukkit.v.entity.CraftPlayer;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 import java.util.Optional;
-import java.util.UUID;
 
 public interface ServerPlayerEntityBridge extends PlayerEntityBridge {
+    void bridge$setNewExp(int i);
+
+    int bridge$getNewExp();
+
+    void bridge$setNewTotalExp(int i);
+
+    int bridge$getNewTotalExp();
+
+    void bridge$setNewLevel(int i);
+
+    int bridge$getNewLevel();
+
+    void bridge$setKeepLevel(boolean b);
+
+    boolean bridge$getKeepLevel();
 
     @Override
     CraftPlayer bridge$getBukkitEntity();

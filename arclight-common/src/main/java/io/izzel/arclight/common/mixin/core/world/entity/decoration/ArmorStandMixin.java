@@ -1,20 +1,17 @@
 package io.izzel.arclight.common.mixin.core.world.entity.decoration;
 
-import com.google.common.collect.Lists;
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
+import io.izzel.arclight.common.bridge.core.entity.decoration.ArmorStandBridge;
 import io.izzel.arclight.common.bridge.core.entity.player.ServerPlayerEntityBridge;
 import io.izzel.arclight.common.mixin.core.world.entity.LivingEntityMixin;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v.CraftEquipmentSlot;
-import org.bukkit.craftbukkit.v.event.CraftEventFactory;
 import org.bukkit.craftbukkit.v.inventory.CraftItemStack;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
@@ -30,12 +27,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Mixin(net.minecraft.world.entity.decoration.ArmorStand.class)
-public abstract class ArmorStandMixin extends LivingEntityMixin {
+public abstract class ArmorStandMixin extends LivingEntityMixin implements ArmorStandBridge {
 
     // @formatter:off
     @Shadow private boolean invisible;
@@ -44,59 +39,21 @@ public abstract class ArmorStandMixin extends LivingEntityMixin {
     @Shadow @Final private NonNullList<ItemStack> armorItems;
     // @formatter:on
 
+    private ArrayList<org.bukkit.inventory.ItemStack> fluorite$BukkitDrops = new ArrayList<>();
+
+    @Override
+    public List<org.bukkit.inventory.ItemStack> bridge$getDrops() {
+        return this.fluorite$BukkitDrops;
+    }
+
+    @Override
+    public void bridge$addDrop(org.bukkit.inventory.ItemStack itemStack) {
+        this.fluorite$BukkitDrops.add(itemStack);
+    }
+
     @Override
     public float getBukkitYaw() {
         return this.getYRot();
-    }
-
-    @Inject(method = "hurt", cancellable = true, at = @At(value = "INVOKE", ordinal = 0, target = "Lnet/minecraft/world/entity/decoration/ArmorStand;kill()V"))
-    public void arclight$damageDropOut(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (CraftEventFactory.handleNonLivingEntityDamageEvent((net.minecraft.world.entity.decoration.ArmorStand) (Object) this, source, amount)) {
-            cir.setReturnValue(false);
-        } else {
-            arclight$callEntityDeath();
-        }
-    }
-
-    @Inject(method = "hurt", cancellable = true, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/damagesource/DamageSource;isExplosion()Z"))
-    public void arclight$damageNormal(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (CraftEventFactory.handleNonLivingEntityDamageEvent((net.minecraft.world.entity.decoration.ArmorStand) (Object) this, source, amount, true, this.invisible)) {
-            cir.setReturnValue(false);
-        }
-    }
-
-    @Redirect(method = "hurt", at = @At(value = "FIELD", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;invisible:Z"))
-    private boolean arclight$softenCondition(net.minecraft.world.entity.decoration.ArmorStand entity) {
-        return false;
-    }
-
-    @Inject(method = "hurt", at = @At(value = "INVOKE", ordinal = 1, target = "Lnet/minecraft/world/entity/decoration/ArmorStand;kill()V"))
-    private void arclight$damageDeath1(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        arclight$callEntityDeath();
-    }
-
-    @Inject(method = "hurt", at = @At(value = "INVOKE", ordinal = 2, target = "Lnet/minecraft/world/entity/decoration/ArmorStand;kill()V"))
-    private void arclight$damageDeath2(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        arclight$callEntityDeath();
-    }
-
-    @Inject(method = "causeDamage", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;kill()V"))
-    private void arclight$deathEvent2(DamageSource source, float p_213817_2_, CallbackInfo ci) {
-        arclight$callEntityDeath();
-    }
-
-    @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;dropAllDeathLoot(Lnet/minecraft/world/damagesource/DamageSource;)V"))
-    private void arclight$dropLater(net.minecraft.world.entity.decoration.ArmorStand entity, DamageSource damageSourceIn) {
-    }
-
-    @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;popResource(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/item/ItemStack;)V"))
-    private void arclight$captureDropsDeath(Level worldIn, BlockPos pos, ItemStack stack) {
-        arclight$tryCaptureDrops(worldIn, pos, stack);
-    }
-
-    @Inject(method = "brokenByAnything", at = @At("RETURN"))
-    private void arclight$spawnLast(DamageSource source, CallbackInfo ci) {
-        this.dropAllDeathLoot(source);
     }
 
     @Override
@@ -104,40 +61,12 @@ public abstract class ArmorStandMixin extends LivingEntityMixin {
         return true;
     }
 
-    @Inject(method = "kill", at = @At("HEAD"))
-    private void arclight$deathEvent(CallbackInfo ci) {
-        arclight$callEntityDeath();
-    }
-
-    private void arclight$tryCaptureDrops(Level worldIn, BlockPos pos, ItemStack stack) {
-        if (!worldIn.isClientSide && !stack.isEmpty() && worldIn.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS) && !worldIn.restoringBlockSnapshots) { // do not drop items while restoring blockstates, prevents item dupe
-            ItemEntity itementity = new ItemEntity(worldIn, pos.getX(), pos.getY(), pos.getZ(), stack);
-            arclight$drops().add(itementity);
+    @Override
+    public void setItemSlot(net.minecraft.world.entity.EquipmentSlot slotIn, ItemStack stack, boolean silent) {
+        switch (slotIn.getType()) {
+            case HAND -> this.bridge$playEquipSound(slotIn, this.handItems.set(slotIn.getIndex(), stack), stack, silent);
+            case ARMOR -> this.bridge$playEquipSound(slotIn, this.armorItems.set(slotIn.getIndex(), stack), stack, silent);
         }
-    }
-
-    private Collection<ItemEntity> arclight$drops() {
-        Collection<ItemEntity> drops = this.captureDrops();
-        if (drops == null) {
-            ArrayList<ItemEntity> list = new ArrayList<>();
-            this.captureDrops(list);
-            return list;
-        } else {
-            return drops;
-        }
-    }
-
-    private void arclight$callEntityDeath() {
-        Collection<ItemEntity> captureDrops = this.captureDrops(null);
-        List<org.bukkit.inventory.ItemStack> drops;
-        if (captureDrops == null) {
-            drops = new ArrayList<>();
-        } else if (captureDrops instanceof List) {
-            drops = Lists.transform((List<ItemEntity>) captureDrops, e -> CraftItemStack.asCraftMirror(e.getItem()));
-        } else {
-            drops = captureDrops.stream().map(ItemEntity::getItem).map(CraftItemStack::asCraftMirror).collect(Collectors.toList());
-        }
-        CraftEventFactory.callEntityDeathEvent((net.minecraft.world.entity.decoration.ArmorStand) (Object) this, drops);
     }
 
     @Inject(method = "swapItem", cancellable = true, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;getAbilities()Lnet/minecraft/world/entity/player/Abilities;"))
@@ -160,12 +89,57 @@ public abstract class ArmorStandMixin extends LivingEntityMixin {
         }
     }
 
-    @Override
-    public void setItemSlot(net.minecraft.world.entity.EquipmentSlot slotIn, ItemStack stack, boolean silent) {
-        switch (slotIn.getType()) {
-            case HAND -> this.bridge$playEquipSound(slotIn, this.handItems.set(slotIn.getIndex(), stack), stack, silent);
-            case ARMOR -> this.bridge$playEquipSound(slotIn, this.armorItems.set(slotIn.getIndex(), stack), stack, silent);
+    @Inject(method = "hurt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;kill()V", ordinal = 0, shift = At.Shift.BEFORE), cancellable = true)
+    private void fluorite$handleNonLivingEntityDamageEvent(DamageSource p_31579_, float p_31580_, CallbackInfoReturnable<Boolean> cir) {
+        if (org.bukkit.craftbukkit.v.event.CraftEventFactory.handleNonLivingEntityDamageEvent((net.minecraft.world.entity.decoration.ArmorStand) (Object) this, p_31579_, p_31580_)) {
+            cir.setReturnValue(false);
         }
+    }
 
+    @Redirect(method = "hurt", at = @At(value = "FIELD", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;invisible:Z"))
+    private boolean fluorite$alwaysTrue(net.minecraft.world.entity.decoration.ArmorStand instance) {
+        return false;
+    }
+
+    @Inject(method = "hurt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/damagesource/DamageSource;isExplosion()Z", shift = At.Shift.BEFORE), cancellable = true)
+    private void fluorite$handleNonLivingEntityDamageEvent_2(DamageSource p_31579_, float p_31580_, CallbackInfoReturnable<Boolean> cir) {
+        if (org.bukkit.craftbukkit.v.event.CraftEventFactory.handleNonLivingEntityDamageEvent((net.minecraft.world.entity.decoration.ArmorStand) (Object) this, p_31579_, p_31580_, true, this.invisible)) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Redirect(method = "hurt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;kill()V", ordinal = 3))
+    private void fluorite$redirectKill(net.minecraft.world.entity.decoration.ArmorStand instance) {
+        this.discard();
+    }
+
+    @Redirect(method = "brokenByPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;popResource(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/item/ItemStack;)V"))
+    private void fluorite$redirectPopResource(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {
+        this.bridge$addDrop(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asBukkitCopy(p_49843_));
+    }
+
+    @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;dropAllDeathLoot(Lnet/minecraft/world/damagesource/DamageSource;)V"))
+    private void fluorite$redrictDropAllDeathLoot(net.minecraft.world.entity.decoration.ArmorStand instance, DamageSource damageSource) {
+        // Empty, move down
+    }
+
+    @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;popResource(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/item/ItemStack;)V", ordinal = 0))
+    private void fluorite$redirectPopResource_2(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {
+        this.bridge$addDrop(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asBukkitCopy(p_49843_));
+    }
+
+    @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;popResource(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/item/ItemStack;)V", ordinal = 1))
+    private void fluorite$redirectPopResource_3(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {
+        this.bridge$addDrop(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asBukkitCopy(p_49843_));
+    }
+
+    @Inject(method = "brokenByAnything", at = @At(value = "RETURN"))
+    private void fluorite$dropAllDeathLoot(DamageSource p_31654_, CallbackInfo ci) {
+        this.dropAllDeathLoot(p_31654_);
+    }
+
+    @Inject(method = "kill", at = @At("HEAD"))
+    private void fluorite$callEntityDeathEvent(CallbackInfo ci) {
+        org.bukkit.craftbukkit.v.event.CraftEventFactory.callEntityDeathEvent((net.minecraft.world.entity.decoration.ArmorStand) (Object) this, this.bridge$getDrops());
     }
 }

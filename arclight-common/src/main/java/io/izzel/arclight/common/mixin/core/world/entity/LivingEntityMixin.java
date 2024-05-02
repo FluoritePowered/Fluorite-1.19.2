@@ -42,7 +42,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -192,7 +191,12 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
     @Shadow public abstract SoundEvent getEatingSound(ItemStack p_21202_);
     @Shadow public abstract InteractionHand getUsedItemHand();
     @Shadow protected abstract void updateGlowingStatus();
+
+    @Shadow protected abstract void dropEquipment();
+
+    @Shadow protected abstract void dropFromLootTable(DamageSource p_21021_, boolean p_21022_);
     // @formatter:on
+
 
     public int expToDrop;
     public boolean forceDrops;
@@ -204,6 +208,11 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
     @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;setHealth(F)V"))
     private void arclight$muteHealth(LivingEntity entity, float health) {
         // do nothing
+    }
+
+    @Override
+    public void bridge$dropExperience() {
+        this.dropExperience();
     }
 
     @Inject(method = "<init>", at = @At("RETURN"))
@@ -233,26 +242,33 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
         return getEatingSound(itemstack);
     }
 
-    @Redirect(method = "dropAllDeathLoot", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;dropExperience()V"))
-    private void arclight$dropLater(LivingEntity livingEntity) {
+    @Redirect(method = "dropAllDeathLoot", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;dropEquipment()V"))
+    private void fluorite$redirectOriginDropEquipment(LivingEntity instance) {
+        // Empty
     }
 
-    @Inject(method = "dropAllDeathLoot", at = @At("RETURN"))
-    private void arclight$dropLast(DamageSource damageSourceIn, CallbackInfo ci) {
-        this.dropExperience();
+    @Redirect(method = "dropAllDeathLoot", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;dropExperience()V"))
+    private void fluorite$redirectDropExperience(LivingEntity instance) {
+        // Empty, move to EntityDeathEvent
+    }
+
+    @Inject(method = "dropAllDeathLoot", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;shouldDropLoot()Z", shift = At.Shift.BEFORE))
+    private void fluorite$moveUpDropEquipment(DamageSource p_21192_, CallbackInfo ci) {
+        this.dropEquipment();
     }
 
     /**
-     * @author IzzelAliz
+     * @author Kotori0629
      * @reason
      */
     @Overwrite
     protected void dropExperience() {
-        // if (!this.world.isRemote && (this.isPlayer() || this.recentlyHit > 0 && this.canDropLoot() && this.world.getGameRules().getBoolean(GameRules.DO_MOB_LOOT))) {
-        if (!((Object) this instanceof EnderDragon)) {
-            int reward = ForgeEventFactory.getExperienceDrop((LivingEntity) (Object) this, this.lastHurtByPlayer, this.expToDrop);
-            ExperienceOrb.award((ServerLevel) this.level, this.position(), reward);
-            bridge$setExpToDrop(0);
+        if (true) {
+            int i = this.expToDrop;
+
+            i = net.minecraftforge.event.ForgeEventFactory.getExperienceDrop(((LivingEntity) (Object) this), this.lastHurtByPlayer, i);
+            ExperienceOrb.award((ServerLevel) this.level, this.position(), i);
+            this.expToDrop = 0;
         }
     }
 
@@ -1052,23 +1068,6 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
         } else {
             this.teleportTo(this.getX(), this.getY(), this.getZ());
             cir.setReturnValue(false);
-        }
-    }
-
-    @Redirect(method = "dropAllDeathLoot", at = @At(value = "INVOKE", ordinal = 0, remap = false, target = "Lnet/minecraft/world/entity/LivingEntity;captureDrops(Ljava/util/Collection;)Ljava/util/Collection;"))
-    private Collection<ItemEntity> arclight$captureIfNeed(LivingEntity livingEntity, Collection<ItemEntity> value) {
-        Collection<ItemEntity> drops = livingEntity.captureDrops();
-        // todo this instanceof ArmorStandEntity
-        return drops == null ? livingEntity.captureDrops(value) : drops;
-    }
-
-    @Redirect(method = "dropAllDeathLoot", at = @At(value = "INVOKE", remap = false, target = "Ljava/util/Collection;forEach(Ljava/util/function/Consumer;)V"))
-    private void arclight$cancelEvent(Collection<ItemEntity> collection, Consumer<ItemEntity> action) {
-        if (this instanceof ServerPlayerEntityBridge) {
-            // recapture for ServerPlayerEntityMixin#onDeath
-            this.captureDrops(collection);
-        } else {
-            collection.forEach(action);
         }
     }
 

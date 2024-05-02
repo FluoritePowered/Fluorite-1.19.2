@@ -11,6 +11,7 @@ import org.bukkit.event.entity.EntityRegainHealthEvent;
 import java.util.Optional;
 
 public interface LivingEntityBridge extends EntityBridge {
+    void bridge$dropExperience();
 
     void bridge$setSlot(EquipmentSlot slotIn, ItemStack stack, boolean silent);
 

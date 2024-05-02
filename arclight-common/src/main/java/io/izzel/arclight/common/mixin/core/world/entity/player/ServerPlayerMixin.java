@@ -5,6 +5,7 @@ import io.izzel.arclight.common.bridge.core.block.PortalInfoBridge;
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
 import io.izzel.arclight.common.bridge.core.entity.InternalEntityBridge;
 import io.izzel.arclight.common.bridge.core.entity.player.ServerPlayerEntityBridge;
+import io.izzel.arclight.common.bridge.core.inventory.IInventoryBridge;
 import io.izzel.arclight.common.bridge.core.inventory.container.ContainerBridge;
 import io.izzel.arclight.common.bridge.core.network.play.ServerPlayNetHandlerBridge;
 import io.izzel.arclight.common.bridge.core.util.FoodStatsBridge;
@@ -16,7 +17,6 @@ import net.minecraft.BlockUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.GlobalPos;
 import net.minecraft.core.PositionImpl;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.PacketSendListener;
@@ -56,11 +56,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.HorseInventoryMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
@@ -69,7 +69,6 @@ import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.dimension.LevelStem;
-import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.portal.PortalInfo;
 import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.phys.AABB;
@@ -92,12 +91,10 @@ import org.bukkit.craftbukkit.v.block.CraftBlock;
 import org.bukkit.craftbukkit.v.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v.event.CraftEventFactory;
 import org.bukkit.craftbukkit.v.event.CraftPortalEvent;
-import org.bukkit.craftbukkit.v.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v.scoreboard.CraftScoreboardManager;
 import org.bukkit.craftbukkit.v.util.BlockStateListPopulator;
 import org.bukkit.craftbukkit.v.util.CraftChatMessage;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerBedLeaveEvent;
 import org.bukkit.event.player.PlayerChangedMainHandEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
@@ -118,8 +115,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -186,6 +181,46 @@ public abstract class ServerPlayerMixin extends PlayerMixin implements ServerPla
     private float pluginRainPositionPrevious;
     public String locale = "en_us";
     private boolean arclight$initialized = false;
+
+    @Override
+    public int bridge$getNewExp() {
+        return this.newExp;
+    }
+
+    @Override
+    public void bridge$setNewExp(int i) {
+        this.newExp = i;;
+    }
+
+    @Override
+    public int bridge$getNewTotalExp() {
+        return this.newTotalExp;
+    }
+
+    @Override
+    public void bridge$setNewTotalExp(int i) {
+        this.newTotalExp = i;
+    }
+
+    @Override
+    public void bridge$setNewLevel(int i) {
+        this.newLevel = i;
+    }
+
+    @Override
+    public int bridge$getNewLevel() {
+        return this.newLevel;
+    }
+
+    @Override
+    public void bridge$setKeepLevel(boolean b) {
+        this.keepLevel = b;
+    }
+
+    @Override
+    public boolean bridge$getKeepLevel() {
+        return this.keepLevel;
+    }
 
     @Inject(method = "<init>", at = @At("RETURN"))
     public void arclight$init(CallbackInfo ci) {
@@ -312,97 +347,117 @@ public abstract class ServerPlayerMixin extends PlayerMixin implements ServerPla
     }
 
     /**
-     * @author IzzelAliz
+     * @author Kotori0629
      * @reason
      */
     @Overwrite
-    public void die(DamageSource damagesource) {
-        this.gameEvent(GameEvent.ENTITY_DIE);
-        if (net.minecraftforge.common.ForgeHooks.onLivingDeath((ServerPlayer) (Object) this, damagesource))
-            return;
+    public void die(DamageSource p_9035_) {
+        if (net.minecraftforge.common.ForgeHooks.onLivingDeath(((ServerPlayer) (Object) this), p_9035_)) return;
         boolean flag = this.level.getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES);
+        // CraftBukkit start - fire PlayerDeathEvent
         if (this.isRemoved()) {
             return;
         }
+
+        int lootingLevel = net.minecraftforge.common.ForgeHooks.getLootingLevel(((ServerPlayer) (Object) this), p_9035_.getEntity(), p_9035_);
+
+        java.util.List<org.bukkit.inventory.ItemStack> playerDrops = new java.util.ArrayList<>(this.getInventory().getContainerSize());
         boolean keepInventory = this.level.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY) || this.isSpectator();
-        Inventory copyInv;
-        if (keepInventory) {
-            copyInv = this.getInventory();
-        } else {
-            copyInv = new Inventory((ServerPlayer) (Object) this);
-            copyInv.replaceWith(this.getInventory());
+
+        if (!keepInventory) {
+            for (ItemStack item : ((IInventoryBridge) this.getInventory()).getContents()) {
+                if (!item.isEmpty() && !net.minecraft.world.item.enchantment.EnchantmentHelper.hasVanishingCurse(item)) {
+                    playerDrops.add(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asCraftMirror(item));
+                }
+            }
         }
-        this.dropAllDeathLoot(damagesource);
+
+        captureDrops(new java.util.ArrayList<>());
+        dropFromLootTable(p_9035_, lastHurtByPlayerTime > 0);
+        // CatServer - Should call dropCustomDeathLoot() here?
+        for (ItemEntity captureDrop : captureDrops(null)) {
+            playerDrops.add(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asCraftMirror(captureDrop.getItem()));
+        }
 
         Component defaultMessage = this.getCombatTracker().getDeathMessage();
         String deathmessage = defaultMessage.getString();
-        List<org.bukkit.inventory.ItemStack> loot = new ArrayList<>();
-        Collection<ItemEntity> drops = this.captureDrops(null);
-        if (drops != null) {
-            for (ItemEntity entity : drops) {
-                CraftItemStack craftItemStack = CraftItemStack.asCraftMirror(entity.getItem());
-                loot.add(craftItemStack);
-            }
-        }
-        this.keepLevel = keepInventory;
-        if (!keepInventory) {
-            this.getInventory().replaceWith(copyInv);
-        }
-        PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent((ServerPlayer) (Object) this, loot, deathmessage, keepInventory);
+        this.keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
+        org.bukkit.event.entity.PlayerDeathEvent event = CraftEventFactory.callPlayerDeathEvent(((ServerPlayer) (Object) this), playerDrops, deathmessage, keepInventory);
+
+        // SPIGOT-943 - only call if they have an inventory open
         if (this.containerMenu != this.inventoryMenu) {
             this.closeContainer();
         }
+
         String deathMessage = event.getDeathMessage();
-        if (deathMessage != null && deathMessage.length() > 0 && flag) {
-            Component itextcomponent;
+
+        if (deathMessage != null && !deathMessage.isEmpty() && flag) { // TODO: allow plugins to override?
+            Component component;
             if (deathMessage.equals(deathmessage)) {
-                itextcomponent = this.getCombatTracker().getDeathMessage();
+                component = this.getCombatTracker().getDeathMessage();
             } else {
-                itextcomponent = CraftChatMessage.fromStringOrNull(deathMessage);
+                component = CraftChatMessage.fromStringOrNull(deathMessage);
             }
-            this.connection.send(new ClientboundPlayerCombatKillPacket(this.getCombatTracker(), itextcomponent), PacketSendListener.exceptionallySend(() -> {
-                String s = itextcomponent.getString(256);
+            this.connection.send(new ClientboundPlayerCombatKillPacket(this.getCombatTracker(), component), PacketSendListener.exceptionallySend(() -> {
+                String s = component.getString(256);
                 Component component1 = Component.translatable("death.attack.message_too_long", Component.literal(s).withStyle(ChatFormatting.YELLOW));
-                Component component2 = Component.translatable("death.attack.even_more_magic", this.getDisplayName()).withStyle((p_143420_) -> {
-                    return p_143420_.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, component1));
-                });
+                Component component2 = Component.translatable("death.attack.even_more_magic", this.getDisplayName()).withStyle((p_143420_) -> p_143420_.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, component1)));
                 return new ClientboundPlayerCombatKillPacket(this.getCombatTracker(), component2);
             }));
             Team scoreboardteambase = this.getTeam();
             if (scoreboardteambase != null && scoreboardteambase.getDeathMessageVisibility() != Team.Visibility.ALWAYS) {
                 if (scoreboardteambase.getDeathMessageVisibility() == Team.Visibility.HIDE_FOR_OTHER_TEAMS) {
-                    this.server.getPlayerList().broadcastSystemToTeam((ServerPlayer) (Object) this, itextcomponent);
+                    this.server.getPlayerList().broadcastSystemToTeam((ServerPlayer) (Object) this, component);
                 } else if (scoreboardteambase.getDeathMessageVisibility() == Team.Visibility.HIDE_FOR_OWN_TEAM) {
-                    this.server.getPlayerList().broadcastSystemToAllExceptTeam((ServerPlayer) (Object) this, itextcomponent);
+                    this.server.getPlayerList().broadcastSystemToAllExceptTeam((ServerPlayer) (Object) this, component);
                 }
             } else {
-                this.server.getPlayerList().broadcastSystemMessage(itextcomponent, false);
+                this.server.getPlayerList().broadcastSystemMessage(component, false);
             }
         } else {
             this.connection.send(new ClientboundPlayerCombatKillPacket(this.getCombatTracker(), CommonComponents.EMPTY));
         }
-        this.removeEntitiesOnShoulder();
 
+        this.removeEntitiesOnShoulder();
         if (this.level.getGameRules().getBoolean(GameRules.RULE_FORGIVE_DEAD_PLAYERS)) {
             this.tellNeutralMobsThatIDied();
         }
 
+        // SPIGOT-5478 must be called manually now
         this.dropExperience();
-
+        // we clean the player's inventory after the EntityDeathEvent is called so plugins can get the exact state of the inventory.
         if (!event.getKeepInventory()) {
             this.getInventory().clearContent();
         }
-        this.setCamera((ServerPlayer) (Object) this);
-        ((CraftScoreboardManager) Bukkit.getScoreboardManager()).getScoreboardScores(ObjectiveCriteria.DEATH_COUNT, this.getScoreboardName(), Score::increment);
+        this.setCamera((ServerPlayer) (Object) this); // Remove spectated target
+        // CraftBukkit end
 
-        LivingEntity entityliving = this.getKillCredit();
-        if (entityliving != null) {
-            this.awardStat(Stats.ENTITY_KILLED_BY.get(entityliving.getType()));
-            entityliving.awardKillScore((ServerPlayer) (Object) this, this.deathScore, damagesource);
-            this.createWitherRose(entityliving);
+        // CatServer - Handle drops
+        if (!keepInventory || !event.getKeepInventory()) {
+            java.util.List<ItemEntity> drops = new java.util.ArrayList<>(event.getDrops().size());
+            for (org.bukkit.inventory.ItemStack stack : event.getDrops()) {
+                if (stack == null || stack.getType() == org.bukkit.Material.AIR) continue;
+
+                drops.add(new ItemEntity(this.level, this.getX(), this.getY(), this.getZ(), org.bukkit.craftbukkit.v.inventory.CraftItemStack.asNMSCopy(stack)));
+            }
+
+            if (!net.minecraftforge.common.ForgeHooks.onLivingDrops((ServerPlayer) (Object) this, p_9035_, drops, lootingLevel, lastHurtByPlayerTime > 0)) {
+                for (ItemEntity drop : drops) {
+                    this.level.addFreshEntity(drop);
+                }
+            }
         }
 
-        this.level.broadcastEntityEvent((ServerPlayer) (Object) this, (byte) 3);
+        // CraftBukkit - Get our scores instead
+        ((WorldBridge) this.level).bridge$getServer().getScoreboardManager().getScoreboardScores(ObjectiveCriteria.DEATH_COUNT, this.getScoreboardName(), Score::increment);
+        LivingEntity livingentity = this.getKillCredit();
+        if (livingentity != null) {
+            this.awardStat(Stats.ENTITY_KILLED_BY.get(livingentity.getType()));
+            livingentity.awardKillScore(((ServerPlayer) (Object) this), this.deathScore, p_9035_);
+            this.createWitherRose(livingentity);
+        }
+
+        this.level.broadcastEntityEvent(((ServerPlayer) (Object) this), (byte) 3);
         this.awardStat(Stats.DEATHS);
         this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_DEATH));
         this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));
@@ -410,7 +465,6 @@ public abstract class ServerPlayerMixin extends PlayerMixin implements ServerPla
         this.setTicksFrozen(0);
         this.setSharedFlagOnFire(false);
         this.getCombatTracker().recheckStatus();
-        this.setLastDeathLocation(Optional.of(GlobalPos.of(this.level.dimension(), this.blockPosition())));
     }
 
     @Redirect(method = "awardKillScore", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/scores/Scoreboard;forAllObjectives(Lnet/minecraft/world/scores/criteria/ObjectiveCriteria;Ljava/lang/String;Ljava/util/function/Consumer;)V"))
