@@ -32,3 +32,4 @@ This project is licensed under [GPL v3](LICENSE).
 * New entity death handler
 * Coordinate the deaths of Bukkit and Forge
 * Disable spigot `/restart` command
+* Fixed bukkitEvent cannot be triggered asynchronously from another thread
