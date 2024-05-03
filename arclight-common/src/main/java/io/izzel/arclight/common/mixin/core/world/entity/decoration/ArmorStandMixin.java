@@ -1,16 +1,20 @@
 package io.izzel.arclight.common.mixin.core.world.entity.decoration;
 
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
+import io.izzel.arclight.common.bridge.core.entity.LivingEntityBridge;
 import io.izzel.arclight.common.bridge.core.entity.decoration.ArmorStandBridge;
 import io.izzel.arclight.common.bridge.core.entity.player.ServerPlayerEntityBridge;
 import io.izzel.arclight.common.mixin.core.world.entity.LivingEntityMixin;
+import io.izzel.arclight.common.mod.server.ArclightServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.craftbukkit.v.CraftEquipmentSlot;
 import org.bukkit.craftbukkit.v.inventory.CraftItemStack;
 import org.bukkit.entity.ArmorStand;
@@ -118,11 +122,6 @@ public abstract class ArmorStandMixin extends LivingEntityMixin implements Armor
         this.bridge$addDrop(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asBukkitCopy(p_49843_));
     }
 
-    @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;dropAllDeathLoot(Lnet/minecraft/world/damagesource/DamageSource;)V"))
-    private void fluorite$redrictDropAllDeathLoot(net.minecraft.world.entity.decoration.ArmorStand instance, DamageSource damageSource) {
-        // Empty, move down
-    }
-
     @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/Block;popResource(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/item/ItemStack;)V", ordinal = 0))
     private void fluorite$redirectPopResource_2(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {
         this.bridge$addDrop(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asBukkitCopy(p_49843_));
@@ -133,8 +132,19 @@ public abstract class ArmorStandMixin extends LivingEntityMixin implements Armor
         this.bridge$addDrop(org.bukkit.craftbukkit.v.inventory.CraftItemStack.asBukkitCopy(p_49843_));
     }
 
+
+    @Redirect(method = "brokenByAnything", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/decoration/ArmorStand;dropAllDeathLoot(Lnet/minecraft/world/damagesource/DamageSource;)V"))
+    private void fluorite$redirectDropAllDeathLoot(net.minecraft.world.entity.decoration.ArmorStand instance, DamageSource damageSource) {
+        // Empty, move down
+    }
+
     @Inject(method = "brokenByAnything", at = @At(value = "RETURN"))
     private void fluorite$dropAllDeathLoot(DamageSource p_31654_, CallbackInfo ci) {
+        for (org.bukkit.inventory.ItemStack stack : this.bridge$getDrops()) {
+            if (stack == null || stack.getType() == Material.AIR || stack.getAmount() == 0) continue;
+            ItemEntity itemEntity = new ItemEntity(this.level, this.getX(), this.getY(), this.getZ(), CraftItemStack.asNMSCopy(stack));
+            this.level.addFreshEntity(itemEntity);
+        }
         this.dropAllDeathLoot(p_31654_);
     }
 

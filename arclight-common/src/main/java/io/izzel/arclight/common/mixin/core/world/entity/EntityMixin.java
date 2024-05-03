@@ -219,6 +219,7 @@ public abstract class EntityMixin implements InternalEntityBridge, EntityBridge,
     @Shadow protected abstract SoundEvent getSwimSound();
     @Shadow protected abstract SoundEvent getSwimSplashSound();
     @Shadow protected abstract SoundEvent getSwimHighSpeedSplashSound();
+    @Shadow public abstract double getZ(double p_20247_);
     // @formatter:on
 
     private static final int CURRENT_LEVEL = 2;
