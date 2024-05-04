@@ -33,3 +33,4 @@ This project is licensed under [GPL v3](LICENSE).
 * Coordinate the deaths of Bukkit and Forge
 * Disable spigot `/restart` command
 * Fixed bukkitEvent cannot be triggered asynchronously from another thread
+* Broken `BlockBreakEvent` fix Block#popResource cannot dropping loot **(WIP) Fix bukkit BlockBreakEvent**
