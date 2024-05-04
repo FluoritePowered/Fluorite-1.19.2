@@ -15,7 +15,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -27,7 +26,6 @@ import org.bukkit.craftbukkit.v.event.CraftEventFactory;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityExhaustionEvent;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -43,28 +41,6 @@ public abstract class BlockMixin extends BlockBehaviourMixin implements BlockBri
     @Shadow public abstract BlockState defaultBlockState();
     @Shadow @Nullable public BlockState getStateForPlacement(BlockPlaceContext context) { return null; }
     // @formatter:on
-
-    /**
-     * @author IzzelAliz
-     * @reason
-     */
-    @Overwrite
-    public static void popResource(Level worldIn, BlockPos pos, ItemStack stack) {
-        if (!worldIn.isClientSide && !stack.isEmpty() && worldIn.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS) && !worldIn.restoringBlockSnapshots) {
-            float f = 0.5F;
-            double d0 = (double) (worldIn.random.nextFloat() * 0.5F) + 0.25D;
-            double d1 = (double) (worldIn.random.nextFloat() * 0.5F) + 0.25D;
-            double d2 = (double) (worldIn.random.nextFloat() * 0.5F) + 0.25D;
-            ItemEntity itemEntity = new ItemEntity(worldIn, (double) pos.getX() + d0, (double) pos.getY() + d1, (double) pos.getZ() + d2, stack);
-            itemEntity.setDefaultPickUpDelay();
-            List<ItemEntity> blockDrops = ArclightCaptures.getBlockDrops();
-            if (blockDrops == null) {
-                worldIn.addFreshEntity(itemEntity);
-            } else {
-                blockDrops.add(itemEntity);
-            }
-        }
-    }
 
     public int getExpDrop(BlockState blockState, ServerLevel world, BlockPos blockPos, ItemStack itemStack, boolean flag) {
         int silkTouch = itemStack.getEnchantmentLevel(Enchantments.SILK_TOUCH);
