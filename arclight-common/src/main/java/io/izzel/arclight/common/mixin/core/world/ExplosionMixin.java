@@ -6,9 +6,7 @@ import com.mojang.datafixers.util.Pair;
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
 import io.izzel.arclight.common.bridge.core.world.ExplosionBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
-import io.izzel.arclight.i18n.ArclightConfig;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import moe.kotori.fluorite.explosions.ExplosionCacheKey;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -91,21 +89,6 @@ public abstract class ExplosionMixin implements ExplosionBridge {
         this.radius = Math.max(sizeIn, 0F);
     }
 
-    // Paper start - Optimize explosions
-    private float getBlockDensity(Vec3 vec3, Entity entity) {
-        if (!ArclightConfig.spec().getOptimization().isOptimizeExplosions()) {
-            return Explosion.getSeenPercent(vec3, entity);
-        }
-        ExplosionCacheKey key = new ExplosionCacheKey(((Explosion) (Object) this), entity.getBoundingBox());
-        Float blockDensity = ((WorldBridge) this.level).bridge$getExplosionDensityCache().get(key);
-        if (blockDensity == null) {
-            blockDensity = Explosion.getSeenPercent(vec3, entity);
-            ((WorldBridge) this.level).bridge$getExplosionDensityCache().put(key, blockDensity);
-        }
-        return blockDensity;
-    }
-    // Paper end
-
     /**
      * @author IzzelAliz
      * @reason
@@ -186,7 +169,7 @@ public abstract class ExplosionMixin implements ExplosionBridge {
                         d5 = d5 / d13;
                         d7 = d7 / d13;
                         d9 = d9 / d13;
-                        double d14 = this.getBlockDensity(vec3d, entity); // Fluorite - Optimize explosions from Paper
+                        double d14 = Explosion.getSeenPercent(vec3d, entity);
                         double d10 = (1.0D - d12) * d14;
 
                         CraftEventFactory.entityDamage = this.source;

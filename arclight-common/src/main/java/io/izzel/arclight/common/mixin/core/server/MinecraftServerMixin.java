@@ -498,14 +498,6 @@ public abstract class MinecraftServerMixin extends ReentrantBlockableEventLoop<T
         this.bridge$drainQueuedTasks();
     }
 
-    // Fluorite start - Optimize explosions from Paper
-    @Redirect(method = "tickChildren", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/event/ForgeEventFactory;onPostLevelTick(Lnet/minecraft/world/level/Level;Ljava/util/function/BooleanSupplier;)V"))
-    private void fluorite$optimizeExplosions(Level level, BooleanSupplier haveTime) {
-        net.minecraftforge.event.ForgeEventFactory.onPostLevelTick(level, haveTime);
-        ((WorldBridge) level).bridge$getExplosionDensityCache().clear();
-    }
-    // Fluorite end
-
     @Inject(method = "saveAllChunks", cancellable = true, locals = LocalCapture.CAPTURE_FAILHARD, at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;overworld()Lnet/minecraft/server/level/ServerLevel;"))
     private void arclight$skipSave(boolean suppressLog, boolean flush, boolean forced, CallbackInfoReturnable<Boolean> cir, boolean flag) {
         cir.setReturnValue(flag);

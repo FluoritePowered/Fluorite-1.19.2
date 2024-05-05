@@ -12,18 +12,11 @@ public class OptimizationSpec {
     @Setting("goal-selector-update-interval")
     private int goalSelectorInterval;
 
-    @Setting("optimize-explosions")
-    private boolean optimizeExplosions;
-
     public boolean isCachePluginClass() {
         return cachePluginClass;
     }
 
     public int getGoalSelectorInterval() {
         return goalSelectorInterval;
-    }
-
-    public boolean isOptimizeExplosions() {
-        return optimizeExplosions;
     }
 }
