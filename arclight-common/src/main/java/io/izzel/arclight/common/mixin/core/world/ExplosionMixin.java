@@ -73,6 +73,7 @@ public abstract class ExplosionMixin implements ExplosionBridge {
     @Shadow @Final public Entity source;
     @Shadow public abstract DamageSource getDamageSource();
     @Shadow @Final private Map<Player, Vec3> hitPlayers;
+    @Accessor("source") public abstract Entity bridge$getExploder();
     @Accessor("radius") public abstract float bridge$getSize();
     @Accessor("radius") public abstract void bridge$setSize(float size);
     @Accessor("blockInteraction") public abstract Explosion.BlockInteraction bridge$getMode();
@@ -83,10 +84,6 @@ public abstract class ExplosionMixin implements ExplosionBridge {
     @Shadow @Nullable public abstract LivingEntity getSourceMob();
     // @formatter:on
 
-    @Override
-    public Entity bridge$getExploder() {
-        return this.source;
-    }
 
     @Inject(method = "<init>(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/Entity;DDDFZLnet/minecraft/world/level/Explosion$BlockInteraction;)V",
         at = @At("RETURN"))
