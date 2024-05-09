@@ -13,6 +13,7 @@ import org.bukkit.craftbukkit.v.event.CraftEventFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.raid.RaidStopEvent;
+import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,11 +32,13 @@ import java.util.Map;
 import java.util.Set;
 
 @Mixin(Raid.class)
-public class RaidMixin implements RaidBridge {
+public abstract class RaidMixin implements RaidBridge {
 
     // @formatter:off
     @Shadow @Final private Map<Integer, Set<Raider>> groupRaiderMap;
     @Shadow @Final private ServerLevel level;
+    @Shadow public abstract void joinRaid(int p_37714_, Raider p_37715_, @Nullable BlockPos p_37716_, boolean p_37717_);
+    @Shadow public abstract void setLeader(int p_37711_, Raider p_37712_);
     // @formatter:on
 
     @Inject(method = "tick", at = @At(value = "INVOKE", ordinal = 0, target = "Lnet/minecraft/world/entity/raid/Raid;stop()V"),
@@ -105,13 +108,13 @@ public class RaidMixin implements RaidBridge {
 
     @Redirect(method = "spawnGroup", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/raid/Raid;setLeader(ILnet/minecraft/world/entity/raid/Raider;)V"))
     public void arclight$captureLeader(Raid raid, int raidId, Raider entity) {
-        raid.setLeader(raidId, entity);
+        this.setLeader(raidId, entity);
         arclight$leader = entity;
     }
 
-    @Redirect(method = "spawnGroup", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/raid/Raid;joinRaid(ILnet/minecraft/world/entity/raid/Raider;Lnet/minecraft/core/BlockPos;Z)V"))
+    @Redirect(method = "spawnGroup", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/raid/Raid;joinRaid(ILnet/minecraft/world/entity/raid/Raider;Lnet/minecraft/core/BlockPos;Z)V", ordinal = 0))
     public void arclight$captureRaider(Raid raid, int wave, Raider entity, BlockPos pos, boolean flag) {
-        raid.joinRaid(wave, entity, pos, flag);
+        this.joinRaid(wave, entity, pos, flag);
         if (arclight$raiders == null) {
             arclight$raiders = new ArrayList<>();
         }
