@@ -123,7 +123,8 @@ public abstract class RaidMixin implements RaidBridge {
 
     @Inject(method = "spawnGroup", at = @At("RETURN"))
     public void arclight$spawnWave(BlockPos pos, CallbackInfo ci) {
-        CraftEventFactory.callRaidSpawnWaveEvent((Raid) (Object) this, arclight$leader, arclight$raiders);
+        // Fluorite - Temporarily disabled
+        // CraftEventFactory.callRaidSpawnWaveEvent((Raid) (Object) this, arclight$leader, arclight$raiders);
     }
 
     @Inject(method = "joinRaid(ILnet/minecraft/world/entity/raid/Raider;Lnet/minecraft/core/BlockPos;Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;addFreshEntityWithPassengers(Lnet/minecraft/world/entity/Entity;)V"))
