@@ -35,3 +35,4 @@ This project is licensed under [GPL v3](LICENSE).
 * Broken `BlockBreakEvent` fix Block#popResource cannot dropping loot **(WIP) Fix bukkit BlockBreakEvent**
 * Fixed add raiders in wrong code location
 * Temporarily disable RaidSpawnWaveEvent
+* Fixed mixin conflict with frozenup mod
