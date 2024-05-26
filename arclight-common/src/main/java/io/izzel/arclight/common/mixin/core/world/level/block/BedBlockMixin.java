@@ -19,6 +19,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING;
 
 @Mixin(BedBlock.class)
@@ -28,6 +30,7 @@ public abstract class BedBlockMixin {
     @Shadow @Final public static EnumProperty<BedPart> PART;
     @Shadow @Final public static BooleanProperty OCCUPIED;
     @Shadow protected abstract boolean kickVillagerOutOfBed(Level p_49491_, BlockPos p_49492_);
+    @Shadow public static boolean canSetSpawn(Level p_49489_) { return false; }
     // @formatter:on
 
     /**
@@ -64,21 +67,27 @@ public abstract class BedBlockMixin {
 
                 return InteractionResult.SUCCESS;
             } else {
-                var pos = p_49517_;
-                var state = p_49515_;
-                p_49518_.startSleepInBed(pos).ifLeft((p_49477_) -> {
-                    if (!level.dimensionType().bedWorks()) {
-                        level.removeBlock(pos, false);
-                        BlockPos blockpos = pos.relative(state.getValue(FACING).getOpposite());
-                        if (level.getBlockState(blockpos).is((BedBlock) (Object) this)) {
-                            level.removeBlock(blockpos, false);
-                        }
-
-                        level.explode(null, DamageSource.badRespawnPointExplosion(), null, (double) pos.getX() + 0.5D, (double) pos.getY() + 0.5D, (double) pos.getZ() + 0.5D, 5.0F, true, Explosion.BlockInteraction.DESTROY);
+                // Fluorite start - fix sleep_tight mixin conflict
+                boolean bedWork = !canSetSpawn(level);
+                AtomicBoolean explode = new AtomicBoolean(false);
+                p_49518_.startSleepInBed(p_49517_).ifLeft((p_49477_) -> {
+                    if (bedWork) {
+                        explode.set(true);
                     } else if (p_49477_.getMessage() != null) {
                         p_49518_.displayClientMessage(p_49477_.getMessage(), true);
                     }
                 });
+
+                if (explode.getAndSet(false)) {
+                    level.removeBlock(p_49517_, false);
+                    BlockPos blockpos = p_49517_.relative(p_49515_.getValue(FACING).getOpposite());
+                    if (level.getBlockState(blockpos).is((BedBlock) (Object) this)) {
+                        level.removeBlock(blockpos, false);
+                    }
+                    level.explode(null, DamageSource.badRespawnPointExplosion(), null, (double) p_49517_.getX() + 0.5D, (double) p_49517_.getY() + 0.5D, (double) p_49517_.getZ() + 0.5D, 5.0F, true, Explosion.BlockInteraction.DESTROY);
+                }
+                // Fluorite end
+
                 return InteractionResult.SUCCESS;
             }
         }

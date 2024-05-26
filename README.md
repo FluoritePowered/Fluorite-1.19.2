@@ -36,3 +36,4 @@ This project is licensed under [GPL v3](LICENSE).
 * Fixed add raiders in wrong code location
 * Temporarily disable RaidSpawnWaveEvent
 * Fixed mixin conflict with frozenup mod
+* Fixed mixin conflict with sleep_tight mod
