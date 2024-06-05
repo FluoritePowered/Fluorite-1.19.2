@@ -47,7 +47,12 @@ public abstract class FishingHookMixin extends ProjectileMixin {
     @Shadow private int timeUntilHooked;
     @Shadow private int timeUntilLured;
     @Shadow @Final private int lureSpeed;
-    @Shadow@Nullable public Entity hookedIn;@Shadow protected abstract boolean shouldStopFishing(Player p_37137_);@Shadow public abstract void pullEntity(Entity p_150156_);@Shadow@Final private int luck;public int minWaitTime = 100;
+    @Shadow @Nullable public Entity hookedIn;
+    @Shadow protected abstract boolean shouldStopFishing(Player p_37137_);
+    @Shadow public abstract void pullEntity(Entity p_150156_);
+    @Shadow@Final private int luck;
+    
+    public int minWaitTime = 100;
     public int maxWaitTime = 600;
     public boolean applyLure = true;
     // @formatter:on
