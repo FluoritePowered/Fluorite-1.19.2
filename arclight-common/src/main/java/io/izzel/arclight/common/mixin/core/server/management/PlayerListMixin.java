@@ -134,6 +134,12 @@ public abstract class PlayerListMixin implements PlayerListBridge {
         cserver = ArclightServer.createOrLoad((DedicatedServer) minecraftServer, (PlayerList) (Object) this);
     }
 
+    @Inject(method = "placeNewPlayer", at = @At(value = "INVOKE", shift = At.Shift.BEFORE, target = "Lorg/slf4j/Logger;info(Ljava/lang/String;[Ljava/lang/Object;)V"))
+    private void fluorite$playerDataFix(Connection p_11262_, ServerPlayer p_11263_, CallbackInfo ci) {
+        moe.kotori.fluorite.PlayerDataFixer.checkLocation(p_11263_);
+        moe.kotori.fluorite.PlayerDataFixer.checkHealth(p_11263_);
+    }
+
     @Redirect(method = "placeNewPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getLevel(Lnet/minecraft/resources/ResourceKey;)Lnet/minecraft/server/level/ServerLevel;"))
     private ServerLevel arclight$spawnLocationEvent(MinecraftServer minecraftServer, ResourceKey<Level> dimension, Connection netManager, ServerPlayer playerIn) {
         CraftPlayer player = ((ServerPlayerEntityBridge) playerIn).bridge$getBukkitEntity();

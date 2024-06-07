@@ -34,6 +34,7 @@ import org.bukkit.craftbukkit.v.entity.CraftFlying;
 import org.bukkit.craftbukkit.v.entity.CraftGolem;
 import org.bukkit.craftbukkit.v.entity.CraftTameableAnimal;
 import org.bukkit.entity.EntityType;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -52,6 +53,11 @@ public abstract class CraftEntityMixin implements org.bukkit.entity.Entity {
     @Shadow @Final protected CraftServer server;
 
     private EntityType arclight$type;
+
+    @Inject(method = "getVelocity", at = @At("HEAD"))
+    private void fluorite$checkVector(CallbackInfoReturnable<Vector> cir) {
+        moe.kotori.fluorite.PlayerDataFixer.checkVector(entity);
+    }
 
     @Override
     public @NotNull EntityType getType() {
