@@ -1,5 +1,6 @@
 package io.izzel.arclight.common.mixin.core.world.level;
 
+import io.izzel.arclight.common.bridge.core.server.management.PlayerListBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.bridge.core.world.border.WorldBorderBridge;
 import io.izzel.arclight.common.bridge.core.world.level.levelgen.ChunkGeneratorBridge;
@@ -12,6 +13,11 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.network.protocol.game.ClientboundSetBorderCenterPacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderLerpSizePacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderSizePacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket;
+import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDistancePacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -23,6 +29,7 @@ import net.minecraft.world.level.LevelWriter;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.border.BorderChangeListener;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -47,10 +54,12 @@ import org.bukkit.generator.ChunkGenerator;
 import org.spigotmc.SpigotWorldConfig;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -66,7 +75,7 @@ public abstract class LevelMixin implements WorldBridge, LevelWriter {
     @Shadow @Nullable public BlockEntity getBlockEntity(BlockPos pos) { return null; }
     @Shadow public abstract BlockState getBlockState(BlockPos pos);
     @Shadow public abstract WorldBorder getWorldBorder();
-    @Shadow @Final private WorldBorder worldBorder;
+    @Mutable @Shadow @Final private WorldBorder worldBorder;
     @Shadow public abstract long getDayTime();
     @Shadow public abstract MinecraftServer shadow$getServer();
     @Shadow public abstract LevelData getLevelData();
@@ -101,9 +110,57 @@ public abstract class LevelMixin implements WorldBridge, LevelWriter {
         bridge$getWorld();
     }
 
+    @Redirect(method = "<init>", at = @At(value = "FIELD", ordinal = 0, target = "Lnet/minecraft/world/level/Level;worldBorder:Lnet/minecraft/world/level/border/WorldBorder;"))
+    private void fluorite$getCenter(Level instance, WorldBorder value) {
+        this.worldBorder = new WorldBorder() {
+            public double getCenterX() {
+                return super.getCenterX(); // CraftBukkit
+            }
+
+            public double getCenterZ() {
+                return super.getCenterZ(); // CraftBukkit
+            }
+        };
+    }
+
     @Inject(method = "<init>", at = @At("RETURN"))
     private void arclight$init(WritableLevelData info, ResourceKey<Level> dimension, Holder<DimensionType> dimType, Supplier<ProfilerFiller> profiler, boolean isRemote, boolean isDebug, long seed, int maxNeighborUpdates, CallbackInfo ci) {
         ((WorldBorderBridge) this.worldBorder).bridge$setWorld((Level) (Object) this);
+        getWorldBorder().addListener(new BorderChangeListener() {
+            @Override
+            public void onBorderSizeSet(WorldBorder worldborder, double d0) {
+                ((PlayerListBridge) getCraftServer().getHandle()).bridge$broadcastAll(new ClientboundSetBorderSizePacket(worldborder), ((WorldBorderBridge) worldborder).bridge$getWorld());
+            }
+
+            @Override
+            public void onBorderSizeLerping(WorldBorder worldborder, double d0, double d1, long i) {
+                ((PlayerListBridge) getCraftServer().getHandle()).bridge$broadcastAll(new ClientboundSetBorderLerpSizePacket(worldborder), ((WorldBorderBridge) worldborder).bridge$getWorld());
+            }
+
+            @Override
+            public void onBorderCenterSet(WorldBorder worldborder, double d0, double d1) {
+                ((PlayerListBridge) getCraftServer().getHandle()).bridge$broadcastAll(new ClientboundSetBorderCenterPacket(worldborder), ((WorldBorderBridge) worldborder).bridge$getWorld());
+            }
+
+            @Override
+            public void onBorderSetWarningTime(WorldBorder worldborder, int i) {
+                ((PlayerListBridge) getCraftServer().getHandle()).bridge$broadcastAll(new ClientboundSetBorderWarningDelayPacket(worldborder), ((WorldBorderBridge) worldborder).bridge$getWorld());
+            }
+
+            @Override
+            public void onBorderSetWarningBlocks(WorldBorder worldborder, int i) {
+                ((PlayerListBridge) getCraftServer().getHandle()).bridge$broadcastAll(new ClientboundSetBorderWarningDistancePacket(worldborder), ((WorldBorderBridge) worldborder).bridge$getWorld());
+            }
+
+            @Override
+            public void onBorderSetDamagePerBlock(WorldBorder worldborder, double d0) {
+            }
+
+            @Override
+            public void onBorderSetDamageSafeZOne(WorldBorder worldborder, double d0) {
+            }
+        });
+
         for (SpawnCategory spawnCategory : SpawnCategory.values()) {
             if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
                 this.ticksPerSpawnCategory.put(spawnCategory, this.getCraftServer().getTicksPerSpawns(spawnCategory));

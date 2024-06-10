@@ -40,6 +40,7 @@
     "network.protocol.game.CCloseWindowPacketMixin",
     "network.protocol.game.ClientboundCommandsPacket_ArgumentNodeStubMixin",
     "network.protocol.game.ClientboundSectionBlocksUpdatePacketMixin",
+    "network.protocol.game.ClientboundSetBorderCenterPacketMixin",
     "network.protocol.game.ClientboundSystemChatPacketMixin",
     "network.protocol.game.CPlayerTryUseItemOnBlockPacketMixin",
     "network.protocol.game.CPlayerTryUseItemPacketMixin",

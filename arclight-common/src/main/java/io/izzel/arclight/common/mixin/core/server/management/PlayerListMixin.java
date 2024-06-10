@@ -523,12 +523,22 @@ public abstract class PlayerListMixin implements PlayerListBridge {
         return serverplayerentity;
     }
 
+    @Override
+    public void bridge$broadcastAll(Packet<?> packet, net.minecraft.world.entity.player.Player entityhuman) {
+        broadcastAll(packet, entityhuman);
+    }
+
     public void broadcastAll(Packet<?> packet, net.minecraft.world.entity.player.Player entityhuman) {
         for (ServerPlayer entityplayer : this.players) {
             if (!(entityhuman instanceof ServerPlayer) || ((ServerPlayerEntityBridge) entityplayer).bridge$getBukkitEntity().canSee(((ServerPlayerEntityBridge) entityhuman).bridge$getBukkitEntity())) {
                 entityplayer.connection.send(packet);
             }
         }
+    }
+
+    @Override
+    public void bridge$broadcastAll(Packet<?> packet, Level world) {
+        broadcastAll(packet, world);
     }
 
     public void broadcastAll(Packet<?> packet, Level world) {

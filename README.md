@@ -39,3 +39,4 @@ This project is licensed under [GPL v3](LICENSE).
 * Fixed mixin conflict with sleep_tight mod
 * Added missing LootContextParams#KILLER_ENTITY/THIS_ENTITY builder fixed LootJS#FISHING event cannot be called
 * Add PlayerDataFixer
+* Fixed worldBorder
