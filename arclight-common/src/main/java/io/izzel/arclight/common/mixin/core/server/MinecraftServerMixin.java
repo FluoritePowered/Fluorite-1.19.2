@@ -491,6 +491,11 @@ public abstract class MinecraftServerMixin extends ReentrantBlockableEventLoop<T
         this.markWorldsDirty();
     }
 
+    @Inject(method = "tickChildren", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", ordinal = 0))
+    public void fluorite$chunkStat(BooleanSupplier p_129954_, CallbackInfo ci) {
+        moe.kotori.fluorite.commands.ChunkStatsCommand.onServerTick();
+    }
+
     @Inject(method = "tickChildren", at = @At("HEAD"))
     public void arclight$runScheduler(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
         ArclightConstants.currentTick = (int) (System.currentTimeMillis() / 50);

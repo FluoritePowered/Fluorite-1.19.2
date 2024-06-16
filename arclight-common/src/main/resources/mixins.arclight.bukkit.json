@@ -49,6 +49,7 @@
     "RecipeIteratorMixin",
     "Registry_SimpleRegistryMixin",
     "RestartCommandMixin",
+    "SimpleCommandMapMixin",
     "SimplePluginManagerMixin",
     "WatchdogThreadMixin",
     "paperapi.LivingEntityMixin_PaperAPI"

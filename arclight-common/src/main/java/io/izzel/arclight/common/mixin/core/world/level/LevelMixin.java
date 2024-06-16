@@ -66,6 +66,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @Mixin(Level.class)
@@ -121,6 +122,16 @@ public abstract class LevelMixin implements WorldBridge, LevelWriter {
                 return super.getCenterZ(); // CraftBukkit
             }
         };
+    }
+
+    @Inject(method = "guardEntityTick", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraftforge/server/timings/TimeTracker;trackStart(Ljava/lang/Object;)V"))
+    private <T extends Entity> void fluorite$guardStatStart(Consumer<T> p_46654_, T p_46655_, CallbackInfo ci) {
+        moe.kotori.fluorite.commands.ChunkStatsCommand.onTickStart();
+    }
+
+    @Inject(method = "guardEntityTick", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Ljava/util/function/Consumer;accept(Ljava/lang/Object;)V"))
+    private <T extends Entity> void fluorite$guardStatEnd(Consumer<T> p_46654_, T p_46655_, CallbackInfo ci) {
+        moe.kotori.fluorite.commands.ChunkStatsCommand.onTickEnd((Level) (Object) this, p_46655_.blockPosition());
     }
 
     @Inject(method = "<init>", at = @At("RETURN"))

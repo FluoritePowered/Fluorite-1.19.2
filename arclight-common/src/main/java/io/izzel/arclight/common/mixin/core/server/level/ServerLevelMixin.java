@@ -193,6 +193,11 @@ public abstract class ServerLevelMixin extends LevelMixin implements ServerWorld
     }
 
     public LevelChunk getChunkIfLoaded(int x, int z) {
+        return bridge$getChunkIfLoaded(x, z);
+    }
+
+    @Override
+    public LevelChunk bridge$getChunkIfLoaded(int x, int z) {
         return this.chunkSource.getChunk(x, z, false);
     }
 

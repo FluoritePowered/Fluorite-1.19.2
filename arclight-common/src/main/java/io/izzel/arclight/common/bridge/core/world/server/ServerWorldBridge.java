@@ -1,5 +1,6 @@
 package io.izzel.arclight.common.bridge.core.world.server;
 
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.weather.LightningStrikeEvent;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
@@ -11,6 +12,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.storage.LevelStorageSource;
 
 public interface ServerWorldBridge extends WorldBridge {
+    LevelChunk bridge$getChunkIfLoaded(int x, int z);
 
     <T extends ParticleOptions> int bridge$sendParticles(T type, double posX, double posY, double posZ, int particleCount, double xOffset, double yOffset, double zOffset, double speed, boolean force);
 
