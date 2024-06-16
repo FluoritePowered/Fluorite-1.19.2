@@ -32,6 +32,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ExperienceOrb;
@@ -45,10 +46,15 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.ForgeEventFactory;
@@ -208,6 +214,64 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
     @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;setHealth(F)V"))
     private void arclight$muteHealth(LivingEntity entity, float health) {
         // do nothing
+    }
+
+    public HitResult getRayTrace(int maxDistance) {
+        return bridge$getRayTrace(maxDistance);
+    }
+
+    @Override
+    public HitResult bridge$getRayTrace(int maxDistance) {
+        return getRayTrace(maxDistance, ClipContext.Fluid.NONE);
+    }
+
+    public HitResult getRayTrace(int maxDistance, ClipContext.Fluid fluidCollisionOption) {
+        return bridge$getRayTrace(maxDistance, fluidCollisionOption);
+    }
+
+    @Override
+    public HitResult bridge$getRayTrace(int maxDistance, ClipContext.Fluid fluidCollisionOption) {
+        if (maxDistance < 1 || maxDistance > 120) {
+            throw new IllegalArgumentException("maxDistance must be between 1-120");
+        }
+
+        Vec3 start = new Vec3(getX(), getY() + getEyeHeight(), getZ());
+        org.bukkit.util.Vector dir = getBukkitEntity().getLocation().getDirection().multiply(maxDistance);
+        Vec3 end = new Vec3(start.x + dir.getX(), start.y + dir.getY(), start.z + dir.getZ());
+        ClipContext raytrace = new ClipContext(start, end, ClipContext.Block.OUTLINE, fluidCollisionOption, ((LivingEntity) (Object) this));
+
+        return level.clip(raytrace);
+    }
+
+    public EntityHitResult getTargetEntity(int maxDistance) {
+        return bridge$getTargetEntity(maxDistance);
+    }
+
+    @Override
+    public EntityHitResult bridge$getTargetEntity(int maxDistance) {
+        if (maxDistance < 1 || maxDistance > 120) {
+            throw new IllegalArgumentException("maxDistance must be between 1-120");
+        }
+        Vec3 start = this.getEyePosition(1.0F);
+        Vec3 direction = this.getLookAngle();
+        Vec3 end = start.add(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance);
+        List<Entity> entityList = level.getEntities((LivingEntity) (Object) this, getBoundingBox().expandTowards(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance).inflate(1.0D, 1.0D, 1.0D), EntitySelector.NO_CREATIVE_OR_SPECTATOR.and(Entity::isPickable));
+        double distance = 0.0D;
+        EntityHitResult result = null;
+        for (Entity entity : entityList) {
+            final double inflationAmount = (double) entity.getPickRadius();
+            AABB aabb = entity.getBoundingBox().inflate(inflationAmount, inflationAmount, inflationAmount);
+            Optional<Vec3> rayTraceResult = aabb.clip(start, end);
+            if (rayTraceResult.isPresent()) {
+                Vec3 rayTrace = rayTraceResult.get();
+                double distanceTo = start.distanceToSqr(rayTrace);
+                if (distanceTo < distance || distance == 0.0D) {
+                    result = new EntityHitResult(entity, rayTrace);
+                    distance = distanceTo;
+                }
+            }
+        }
+        return result;
     }
 
     @Override

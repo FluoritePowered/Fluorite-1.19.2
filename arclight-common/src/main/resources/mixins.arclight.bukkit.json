@@ -50,6 +50,7 @@
     "Registry_SimpleRegistryMixin",
     "RestartCommandMixin",
     "SimplePluginManagerMixin",
-    "WatchdogThreadMixin"
+    "WatchdogThreadMixin",
+    "paperapi.LivingEntityMixin_PaperAPI"
   ]
 }

@@ -222,6 +222,12 @@ public abstract class EntityMixin implements InternalEntityBridge, EntityBridge,
     @Shadow public abstract double getZ(double p_20247_);
     // @formatter:on
 
+    @Shadow public abstract Vec3 getEyePosition(float p_20300_);
+
+    @Shadow public abstract Vec3 getLookAngle();
+
+    @Shadow public abstract float getEyeHeight();
+
     private static final int CURRENT_LEVEL = 2;
     public boolean persist = true;
     public boolean generation;

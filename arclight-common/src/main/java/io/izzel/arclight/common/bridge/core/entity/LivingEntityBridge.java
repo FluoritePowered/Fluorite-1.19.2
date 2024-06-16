@@ -4,6 +4,9 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.bukkit.craftbukkit.v.entity.CraftLivingEntity;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
@@ -11,6 +14,12 @@ import org.bukkit.event.entity.EntityRegainHealthEvent;
 import java.util.Optional;
 
 public interface LivingEntityBridge extends EntityBridge {
+    HitResult bridge$getRayTrace(int maxDistance);
+
+    HitResult bridge$getRayTrace(int maxDistance, ClipContext.Fluid fluidCollisionOption);
+
+    EntityHitResult bridge$getTargetEntity(int maxDistance);
+
     void bridge$dropExperience();
 
     void bridge$setSlot(EquipmentSlot slotIn, ItemStack stack, boolean silent);
