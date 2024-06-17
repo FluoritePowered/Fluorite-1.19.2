@@ -379,16 +379,14 @@ public abstract class PlayerListMixin implements PlayerListBridge {
     private transient Location arclight$loc;
     private transient Boolean arclight$suffo;
 
+    private transient org.bukkit.World fluorite$fromWorld;
+    private transient Boolean fluorite$flag3;
     /**
      * @author IzzelAliz
      * @reason
      */
     @Overwrite
     public ServerPlayer respawn(ServerPlayer playerIn, boolean conqueredEnd) {
-        Location location = arclight$loc;
-        arclight$loc = null;
-        boolean avoidSuffocation = arclight$suffo == null || arclight$suffo;
-        arclight$suffo = null;
         playerIn.stopRiding();
         this.players.remove(playerIn);
         playerIn.getLevel().removePlayerImmediately(playerIn, Entity.RemovalReason.DISCARDED);
@@ -396,15 +394,15 @@ public abstract class PlayerListMixin implements PlayerListBridge {
         float f = playerIn.getRespawnAngle();
         boolean flag2 = playerIn.isRespawnForced();
 
-        org.bukkit.World fromWorld = ((ServerPlayerEntityBridge) playerIn).bridge$getBukkitEntity().getWorld();
+        fluorite$fromWorld = ((ServerPlayerEntityBridge) playerIn).bridge$getBukkitEntity().getWorld();
         playerIn.wonGame = false;
 
-        boolean flag3 = false;
+        fluorite$flag3 = false;
         ServerLevel spawnWorld = this.server.getLevel(playerIn.getRespawnDimension());
-        if (location == null) {
+        Optional<Vec3> optional = Optional.empty();
+        if (arclight$loc == null) {
             boolean isBedSpawn = false;
             if (spawnWorld != null) {
-                Optional<Vec3> optional;
                 if (pos != null) {
                     optional = net.minecraft.world.entity.player.Player.findRespawnPositionAndUseSpawnBlock(spawnWorld, pos, f, flag2, conqueredEnd);
                 } else {
@@ -423,34 +421,34 @@ public abstract class PlayerListMixin implements PlayerListBridge {
                     }
                     // playerIn.setLocationAndAngles(vec3d.x, vec3d.y, vec3d.z, f2, 0.0f);
                     playerIn.setRespawnPosition(spawnWorld.dimension(), pos, f2, flag2, false);
-                    flag3 = (!flag2 && flag4);
+                    fluorite$flag3 = (!flag2 && flag4);
                     isBedSpawn = true;
-                    location = new Location(((WorldBridge) spawnWorld).bridge$getWorld(), vec3d.x, vec3d.y, vec3d.z);
+                    arclight$loc = new Location(((WorldBridge) spawnWorld).bridge$getWorld(), vec3d.x, vec3d.y, vec3d.z);
                 } else if (pos != null) {
                     playerIn.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.NO_RESPAWN_BLOCK_AVAILABLE, 0.0f));
                     playerIn.setRespawnPosition(Level.OVERWORLD, null, 0f, false, false);
                 }
             }
-            if (location == null) {
+            if (arclight$loc == null) {
                 spawnWorld = this.server.getLevel(Level.OVERWORLD);
                 pos = ((ServerPlayerEntityBridge) playerIn).bridge$getSpawnPoint(spawnWorld);
-                location = new Location(((WorldBridge) spawnWorld).bridge$getWorld(), pos.getX() + 0.5f, pos.getY() + 0.1f, pos.getZ() + 0.5f);
+                arclight$loc = new Location(((WorldBridge) spawnWorld).bridge$getWorld(), pos.getX() + 0.5f, pos.getY() + 0.1f, pos.getZ() + 0.5f);
             }
             Player respawnPlayer = ((ServerPlayerEntityBridge) playerIn).bridge$getBukkitEntity();
-            PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn && !flag3, flag3);
+            PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, arclight$loc, isBedSpawn && !fluorite$flag3, fluorite$flag3);
             this.cserver.getPluginManager().callEvent(respawnEvent);
             if (((ServerPlayNetHandlerBridge) playerIn.connection).bridge$isDisconnected()) {
                 return playerIn;
             }
-            location = respawnEvent.getRespawnLocation();
+            arclight$loc = respawnEvent.getRespawnLocation();
             if (!conqueredEnd) {
                 ((ServerPlayerEntityBridge) playerIn).bridge$reset();
             }
         } else {
-            location.setWorld(((WorldBridge) spawnWorld).bridge$getWorld());
+            arclight$loc.setWorld(((WorldBridge) spawnWorld).bridge$getWorld());
         }
 
-        ServerLevel serverWorld = ((CraftWorld) location.getWorld()).getHandle();
+        ServerLevel serverWorld = ((CraftWorld) arclight$loc.getWorld()).getHandle();
 
         ServerPlayer serverplayerentity = new ServerPlayer(this.server, serverWorld, playerIn.getGameProfile(), playerIn.getProfilePublicKey());
 
@@ -476,9 +474,10 @@ public abstract class PlayerListMixin implements PlayerListBridge {
             serverplayerentity.addTag(s);
         }
 
-        serverplayerentity.moveTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        serverplayerentity.moveTo(arclight$loc.getX(), arclight$loc.getY(), arclight$loc.getZ(), arclight$loc.getYaw(), arclight$loc.getPitch());
         serverplayerentity.connection.resetPosition();
 
+        boolean avoidSuffocation = arclight$suffo == null || arclight$suffo;
         while (avoidSuffocation && !serverWorld.noCollision(serverplayerentity) && serverplayerentity.getY() < serverWorld.getMaxBuildHeight()) {
             serverplayerentity.setPos(serverplayerentity.getX(), serverplayerentity.getY() + 1.0D, serverplayerentity.getZ());
         }
@@ -512,14 +511,22 @@ public abstract class PlayerListMixin implements PlayerListBridge {
             MobEffectInstance mobEffect = (MobEffectInstance) o1;
             serverplayerentity.connection.send(new ClientboundUpdateMobEffectPacket(serverplayerentity.getId(), mobEffect));
         }
-        serverplayerentity.triggerDimensionChangeTriggers(((CraftWorld) fromWorld).getHandle());
-        if (fromWorld != location.getWorld()) {
-            PlayerChangedWorldEvent event = new PlayerChangedWorldEvent(((ServerPlayerEntityBridge) serverplayerentity).bridge$getBukkitEntity(), fromWorld);
+        serverplayerentity.triggerDimensionChangeTriggers(((CraftWorld) fluorite$fromWorld).getHandle());
+        if (fluorite$fromWorld != arclight$loc.getWorld()) {
+            PlayerChangedWorldEvent event = new PlayerChangedWorldEvent(((ServerPlayerEntityBridge) serverplayerentity).bridge$getBukkitEntity(), fluorite$fromWorld);
             Bukkit.getPluginManager().callEvent(event);
         }
         if (((ServerPlayNetHandlerBridge) serverplayerentity.connection).bridge$isDisconnected()) {
             this.save(serverplayerentity);
         }
+
+        // Fluorite start - rst
+        arclight$loc = null;
+        arclight$suffo = null;
+        fluorite$fromWorld = null;
+        fluorite$flag3 = false;
+        // Fluorite end
+
         return serverplayerentity;
     }
 
