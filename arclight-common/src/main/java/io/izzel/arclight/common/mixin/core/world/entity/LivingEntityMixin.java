@@ -197,10 +197,9 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
     @Shadow public abstract SoundEvent getEatingSound(ItemStack p_21202_);
     @Shadow public abstract InteractionHand getUsedItemHand();
     @Shadow protected abstract void updateGlowingStatus();
-
     @Shadow protected abstract void dropEquipment();
-
     @Shadow protected abstract void dropFromLootTable(DamageSource p_21021_, boolean p_21022_);
+    @Shadow protected abstract void actuallyHurt(DamageSource p_21240_, float p_21241_);
     // @formatter:on
 
 
@@ -635,14 +634,15 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
                 if (amount <= this.lastHurt) {
                     return false;
                 }
-
-                if (!this.damageEntity0(source, amount - this.lastHurt)) {
+                this.actuallyHurt(source, amount - this.lastHurt);
+                if (!fluorite$hurtRt) {
                     return false;
                 }
                 this.lastHurt = amount;
                 flag1 = false;
             } else {
-                if (!this.damageEntity0(source, amount)) {
+                this.actuallyHurt(source, amount);
+                if (!fluorite$hurtRt) {
                     return false;
                 }
                 this.lastHurt = amount;
@@ -760,12 +760,17 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
         ci.cancel();
     }
 
+    private transient boolean fluorite$hurtRt;
+
     protected boolean damageEntity0(DamageSource damagesource, float f) {
         if (!this.isInvulnerableTo(damagesource)) {
             final boolean human = (Object) this instanceof net.minecraft.world.entity.player.Player;
 
             f = net.minecraftforge.common.ForgeHooks.onLivingHurt((LivingEntity) (Object) this, damagesource, f);
-            if (f <= 0) return true;
+            if (f <= 0) {
+                fluorite$hurtRt = true;
+                return fluorite$hurtRt;
+            }
 
             float originalDamage = f;
             Function<Double, Double> hardHat = f12 -> {
@@ -823,7 +828,8 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
             }
 
             if (event.isCancelled()) {
-                return false;
+                fluorite$hurtRt = false;
+                return fluorite$hurtRt;
             }
 
             f = (float) event.getFinalDamage();
@@ -897,7 +903,8 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
                 }
                 this.gameEvent(GameEvent.ENTITY_DAMAGE, damagesource.getEntity());
 
-                return true;
+                fluorite$hurtRt = true;
+                return fluorite$hurtRt;
             } else {
                 // Duplicate triggers if blocking
                 if (event.getDamage(EntityDamageEvent.DamageModifier.BLOCKING) < 0) {
@@ -912,14 +919,16 @@ public abstract class LivingEntityMixin extends EntityMixin implements LivingEnt
                         CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer) damagesource.getEntity(), (Entity) (Object) this, damagesource, f, originalDamage, true);
                     }
 
-                    return false;
+                    fluorite$hurtRt = false;
+                    return fluorite$hurtRt;
                 } else {
                     return originalDamage > 0;
                 }
                 // CraftBukkit end
             }
         }
-        return false; // CraftBukkit
+        fluorite$hurtRt = false;
+        return fluorite$hurtRt; // CraftBukkit
     }
 
     private transient EntityRegainHealthEvent.RegainReason arclight$regainReason;
