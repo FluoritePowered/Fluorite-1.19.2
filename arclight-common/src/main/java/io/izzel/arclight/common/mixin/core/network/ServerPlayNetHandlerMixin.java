@@ -546,13 +546,6 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                         this.player.getLevel().getChunkSource().move(this.player);
                         this.allowedPlayerTicks = 20; // CraftBukkit
                     } else {
-                        // CraftBukkit - Make sure the move is valid but then reset it for plugins to modify
-                        double prevX = player.getX();
-                        double prevY = player.getY();
-                        double prevZ = player.getZ();
-                        float prevYaw = player.getYRot();
-                        float prevPitch = player.getXRot();
-                        // CraftBukkit end
                         double d3 = this.player.getX();
                         double d4 = this.player.getY();
                         double d5 = this.player.getZ();
@@ -562,6 +555,14 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                         double d9 = d2 - this.firstGoodZ;
                         double d10 = this.player.getDeltaMovement().lengthSqr();
                         double d11 = d7 * d7 + d8 * d8 + d9 * d9;
+
+                        // CraftBukkit - Make sure the move is valid but then reset it for plugins to modify
+                        double prevX = player.getX();
+                        double prevY = player.getY();
+                        double prevZ = player.getZ();
+                        float prevYaw = player.getYRot();
+                        float prevPitch = player.getXRot();
+                        // CraftBukkit end
 
                         if (this.player.isSleeping()) {
                             if (d11 > 1.0D) {

@@ -43,4 +43,5 @@ This project is licensed under [GPL v3](LICENSE).
 * Updated to forge 43.4.0
 * Add LivingEntity#getTargetEntity API from Paper
 * Implement ChunkStats
-* Fixed mixin 
+* Fixed mixin conflict with fruitsdelight mod
+* Fixed mixin conflict with bettercombat mod
