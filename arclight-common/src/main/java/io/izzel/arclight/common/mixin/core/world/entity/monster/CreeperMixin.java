@@ -57,7 +57,10 @@ public abstract class CreeperMixin extends PathfinderMobMixin implements Creeper
             Bukkit.getPluginManager().callEvent(event);
             if (!event.isCancelled()) {
                 this.dead = true;
-                this.level.explode((Creeper) (Object) this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), explosion_effect);
+                // Fluorite start
+                ((WorldBridge) this.level).bridge$setFire(event.getFire());
+                this.level.explode((Creeper) (Object) this, this.getX(), this.getY(), this.getZ(), event.getRadius(), explosion_effect);
+                // Fluorite end
                 this.discard();
                 this.spawnLingeringCloud();
             } else {

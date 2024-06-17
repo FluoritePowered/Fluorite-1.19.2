@@ -22,7 +22,10 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelWriter;
@@ -83,6 +86,7 @@ public abstract class LevelMixin implements WorldBridge, LevelWriter {
     @Shadow public abstract ResourceKey<Level> dimension();
     @Shadow(remap = false) public abstract void markAndNotifyBlock(BlockPos p_46605_,@org.jetbrains.annotations.Nullable LevelChunk levelchunk, BlockState blockstate, BlockState p_46606_, int p_46607_, int p_46608_);
     @Shadow public abstract DimensionType dimensionType();
+    @Shadow public abstract Explosion explode(@org.jetbrains.annotations.Nullable Entity p_46526_,@org.jetbrains.annotations.Nullable DamageSource p_46527_,@org.jetbrains.annotations.Nullable ExplosionDamageCalculator p_46528_, double p_46529_, double p_46530_, double p_46531_, float p_46532_, boolean p_46533_, Explosion.BlockInteraction p_46534_);
     @Accessor("thread") public abstract Thread arclight$getMainThread();
     // @formatter:on
 
@@ -122,6 +126,22 @@ public abstract class LevelMixin implements WorldBridge, LevelWriter {
                 return super.getCenterZ(); // CraftBukkit
             }
         };
+    }
+
+    private transient boolean fluorite$isFire;
+
+    @Override
+    public void bridge$setFire(boolean fire) {
+        this.fluorite$isFire = fire;
+    }
+
+    @Redirect(
+            method = "explode(Lnet/minecraft/world/entity/Entity;DDDFLnet/minecraft/world/level/Explosion$BlockInteraction;)Lnet/minecraft/world/level/Explosion;",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/level/Level;explode(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/damagesource/DamageSource;Lnet/minecraft/world/level/ExplosionDamageCalculator;DDDFZLnet/minecraft/world/level/Explosion$BlockInteraction;)Lnet/minecraft/world/level/Explosion;")
+    )
+    private Explosion fluorite$fire(Level instance, Entity p_46526_, DamageSource p_46527_, ExplosionDamageCalculator p_46528_, double p_46529_, double p_46530_, double p_46531_, float p_46532_, boolean p_46533_, Explosion.BlockInteraction p_46534_) {
+        return this.explode(p_46526_, null, null, p_46529_, p_46530_, p_46531_, p_46532_, this.fluorite$isFire, p_46534_);
     }
 
     @Inject(method = "guardEntityTick", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraftforge/server/timings/TimeTracker;trackStart(Ljava/lang/Object;)V"))

@@ -46,3 +46,4 @@ This project is licensed under [GPL v3](LICENSE).
 * Fixed mixin conflict with fruitsdelight mod
 * Fixed mixin conflict with bettercombat mod
 * Fixed mixin conflict with spoornarmorattributes mod
+* Fixed mixin conflict with caverns_and_chasms mod

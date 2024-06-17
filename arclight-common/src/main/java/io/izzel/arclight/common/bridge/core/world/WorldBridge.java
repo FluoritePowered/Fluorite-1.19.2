@@ -12,6 +12,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.spigotmc.SpigotWorldConfig;
 
 public interface WorldBridge extends IWorldWriterBridge, IWorldBridge {
+    void bridge$setFire(boolean fire);
 
     CraftServer bridge$getServer();
 
