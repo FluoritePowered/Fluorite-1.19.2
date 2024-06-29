@@ -29,7 +29,7 @@ public class ChunkStatsCommand extends Command {
         super(name);
         this.description = "Chunk Stats Command";
         this.usageMessage = "/chunkstats start/stop";
-        setPermission("catserver.command.chunkstats");
+        setPermission("fluorite.command.chunkstats");
     }
 
     @Override
