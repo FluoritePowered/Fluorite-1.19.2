@@ -10,6 +10,8 @@
   },
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "FMLConfigMixin",
+    "ForgeConfigSpecMixin",
     "ForgeEventFactoryMixin",
     "ForgeHooksMixin",
     "NetworkHooksMixin",
