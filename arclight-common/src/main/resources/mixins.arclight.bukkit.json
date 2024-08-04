@@ -51,6 +51,7 @@
     "RestartCommandMixin",
     "SimpleCommandMapMixin",
     "SimplePluginManagerMixin",
+    "StandardMessengerMixin",
     "WatchdogThreadMixin",
     "paperapi.LivingEntityMixin_PaperAPI"
   ]

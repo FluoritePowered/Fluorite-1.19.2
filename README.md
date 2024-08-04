@@ -48,3 +48,4 @@ This project is licensed under [GPL v3](LICENSE).
 * Fixed mixin conflict with spoornarmorattributes mod
 * Fixed mixin conflict with caverns_and_chasms mod
 * LibraryLoader used AliCloud Mirror
+* Modify MaxChannelSize to 256
