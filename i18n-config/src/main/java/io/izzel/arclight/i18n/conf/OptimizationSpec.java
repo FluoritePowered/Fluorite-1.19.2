@@ -12,6 +12,13 @@ public class OptimizationSpec {
     @Setting("goal-selector-update-interval")
     private int goalSelectorInterval;
 
+    @Setting("enable-teleport-command-permission-check")
+    private boolean enableTeleportCommandPermissionCheck;
+
+    public boolean enableTeleportCommandPermissionCheck() {
+        return enableTeleportCommandPermissionCheck;
+    }
+
     public boolean isCachePluginClass() {
         return cachePluginClass;
     }

@@ -1,11 +1,13 @@
 package io.izzel.arclight.common.mixin.core.server.commands;
 
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import io.izzel.arclight.common.bridge.core.entity.EntityBridge;
 import io.izzel.arclight.common.bridge.core.entity.player.ServerPlayerEntityBridge;
 import io.izzel.arclight.common.bridge.core.network.play.ServerPlayNetHandlerBridge;
 import io.izzel.arclight.common.bridge.core.world.server.ServerWorldBridge;
+import io.izzel.arclight.i18n.ArclightConfig;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
@@ -29,6 +31,8 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import javax.annotation.Nullable;
 import java.util.Set;
@@ -39,6 +43,14 @@ public class TeleportCommandMixin {
     // @formatter:off
     @Shadow @Final private static SimpleCommandExceptionType INVALID_POSITION;
     // @formatter:on
+
+    @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;register(Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;)Lcom/mojang/brigadier/tree/LiteralCommandNode;"))
+    private static LiteralArgumentBuilder<CommandSourceStack> fluorite$pass(LiteralArgumentBuilder<CommandSourceStack> command) {
+        if (!ArclightConfig.spec().getOptimization().enableTeleportCommandPermissionCheck()) {
+            return command.requires(source -> source.hasPermission(0));
+        }
+        return command.requires(source -> source.hasPermission(2));
+    }
 
     /**
      * @author IzzelAliz
